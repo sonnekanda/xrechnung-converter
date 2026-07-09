@@ -15,12 +15,12 @@ public final class InvoiceDtos {
     /** Zeile in der Uebersicht/Dashboard. */
     public record InvoiceSummary(String id, String rechnungsnummer, String status,
                                  String dokumentart, boolean needsOcr, boolean valid,
-                                 String pdfFilename, String csvFilename,
+                                 String pdfFilename, String csvFilename, String source,
                                  Instant createdAt) {
         public static InvoiceSummary of(Invoice i) {
             return new InvoiceSummary(i.getId().toString(), i.getRechnungsnummer(),
                     i.getStatus().name(), i.getDokumentart(), i.isNeedsOcr(), i.isValid(),
-                    i.getPdfFilename(), i.getCsvFilename(), i.getCreatedAt());
+                    i.getPdfFilename(), i.getCsvFilename(), i.getSource(), i.getCreatedAt());
         }
     }
 

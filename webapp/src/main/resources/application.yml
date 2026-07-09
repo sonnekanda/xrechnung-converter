@@ -33,6 +33,11 @@ erechnung:
   rounding-tolerance: ${ROUNDING_TOLERANCE:0.02}
   invoice-engine-url: ${INVOICE_ENGINE_URL:http://localhost:8090}
   extraction-poll-ms: ${EXTRACTION_POLL_MS:1500}
+  watch:
+    enabled: ${WATCH_ENABLED:false}
+    input-dir: ${WATCH_INPUT_DIR:/data/watch/in}
+    output-dir: ${WATCH_OUTPUT_DIR:/data/watch/out}
+    interval-seconds: ${WATCH_INTERVAL:60}
   jwt:
     secret: ${JWT_SECRET:change-me-please-use-a-long-random-value-min-32}
     expiry-minutes: ${JWT_EXPIRY_MINUTES:480}

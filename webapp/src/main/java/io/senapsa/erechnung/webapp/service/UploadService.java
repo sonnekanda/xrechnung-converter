@@ -44,32 +44,61 @@ public class UploadService {
         }
         validate(pdf, ".pdf", "PDF");
         validate(csv, ".csv", "CSV");
-
-        Invoice invoice = new Invoice();
-        invoice.setStatus(InvoiceStatus.HOCHGELADEN);
-        invoice = invoices.save(invoice);
-
         try {
-            Path dir = dataDir.resolve(invoice.getId().toString());
-            Files.createDirectories(dir);
-            String pdfPath = store(pdf, dir);
-            String csvPath = store(csv, dir);
-            if (pdf != null && !pdf.isEmpty()) {
-                invoice.setPdfFilename(pdf.getOriginalFilename());
-            }
-            if (csv != null && !csv.isEmpty()) {
-                invoice.setCsvFilename(csv.getOriginalFilename());
-            }
-            invoice.setStatus(InvoiceStatus.IN_VERARBEITUNG);
-            invoice.touch();
-            invoices.save(invoice);
-            audit.log(invoice.getId(), "HOCHGELADEN",
-                    "pdf=" + invoice.getPdfFilename() + ", csv=" + invoice.getCsvFilename());
-            queue.enqueue(invoice, pdfPath, csvPath);
-            return invoice;
+            return ingest(nameOf(pdf), bytesOf(pdf), nameOf(csv), bytesOf(csv), "UPLOAD", null);
         } catch (IOException e) {
             throw new ApiExceptions.BadRequest("Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen.");
         }
+    }
+
+    /**
+     * Gemeinsamer Verarbeitungspfad fuer Upload und Ordner-Automatik: legt die
+     * Rechnung an, speichert die Dateien unter /data und reiht die Extraktion in
+     * dieselbe Queue ein. Kein Sonderpfad je Quelle.
+     */
+    @Transactional
+    public Invoice ingest(String pdfName, byte[] pdfBytes, String csvName, byte[] csvBytes,
+                          String source, String watchBasename) throws IOException {
+        Invoice invoice = new Invoice();
+        invoice.setStatus(InvoiceStatus.HOCHGELADEN);
+        invoice.setSource(source);
+        invoice.setWatchBasename(watchBasename);
+        invoice = invoices.save(invoice);
+
+        Path dir = dataDir.resolve(invoice.getId().toString());
+        Files.createDirectories(dir);
+        String pdfPath = writeFile(dir, pdfName, pdfBytes);
+        String csvPath = writeFile(dir, csvName, csvBytes);
+        if (pdfPath != null) {
+            invoice.setPdfFilename(pdfName);
+        }
+        if (csvPath != null) {
+            invoice.setCsvFilename(csvName);
+        }
+        invoice.setStatus(InvoiceStatus.IN_VERARBEITUNG);
+        invoice.touch();
+        invoices.save(invoice);
+        audit.log(invoice.getId(), "HOCHGELADEN",
+                "quelle=" + source + ", pdf=" + pdfName + ", csv=" + csvName);
+        queue.enqueue(invoice, pdfPath, csvPath);
+        return invoice;
+    }
+
+    private String writeFile(Path dir, String name, byte[] bytes) throws IOException {
+        if (name == null || bytes == null || bytes.length == 0) {
+            return null;
+        }
+        Path target = dir.resolve(name);
+        Files.write(target, bytes);
+        return target.toString();
+    }
+
+    private static String nameOf(MultipartFile f) {
+        return isEmpty(f) ? null : f.getOriginalFilename();
+    }
+
+    private static byte[] bytesOf(MultipartFile f) throws IOException {
+        return isEmpty(f) ? null : f.getBytes();
     }
 
     private void validate(MultipartFile file, String suffix, String label) {
@@ -83,15 +112,6 @@ public class UploadService {
         if (file.getSize() > maxBytes) {
             throw new ApiExceptions.BadRequest("Die Datei ist zu gross. Bitte bleiben Sie unter dem erlaubten Limit.");
         }
-    }
-
-    private String store(MultipartFile file, Path dir) throws IOException {
-        if (isEmpty(file)) {
-            return null;
-        }
-        Path target = dir.resolve(file.getOriginalFilename());
-        file.transferTo(target);
-        return target.toString();
     }
 
     private static boolean isEmpty(MultipartFile f) {

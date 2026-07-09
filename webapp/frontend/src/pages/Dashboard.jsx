@@ -70,6 +70,7 @@ export default function Dashboard() {
                 <td className="muted">
                   {i.pdfFilename && <div>PDF{i.needsOcr ? " (OCR nötig)" : ""}</div>}
                   {i.csvFilename && <div>CSV</div>}
+                  {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
                 <td><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
                 <td className="muted">{i.valid ? "gültig" : "—"}</td>

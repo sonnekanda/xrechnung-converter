@@ -47,6 +47,14 @@ public class Invoice {
     @Column(name = "needs_ocr", nullable = false)
     private boolean needsOcr = false;
 
+    /** Herkunft: "UPLOAD" oder "WATCH" (Ordner-Automatik). */
+    @Column(name = "source", nullable = false)
+    private String source = "UPLOAD";
+
+    /** Basisdateiname im Eingangsordner (nur bei Ordner-Automatik). */
+    @Column(name = "watch_basename")
+    private String watchBasename;
+
     /** Internes Rechnungsmodell als JSON-Text. */
     @Column(name = "model_json", columnDefinition = "text")
     private String modelJson;
@@ -126,6 +134,22 @@ public class Invoice {
 
     public void setNeedsOcr(boolean needsOcr) {
         this.needsOcr = needsOcr;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getWatchBasename() {
+        return watchBasename;
+    }
+
+    public void setWatchBasename(String watchBasename) {
+        this.watchBasename = watchBasename;
     }
 
     public String getModelJson() {

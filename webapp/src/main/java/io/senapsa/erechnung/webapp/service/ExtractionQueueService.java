@@ -34,15 +34,19 @@ public class ExtractionQueueService {
     private final ModelJson modelJson;
     private final AuditService audit;
 
+    private final WatchFolderService watchFolder;
+
     public ExtractionQueueService(StringRedisTemplate redis, ObjectMapper mapper,
                                   InvoiceRepository invoices, StammdatenAutofillService autofill,
-                                  ModelJson modelJson, AuditService audit) {
+                                  ModelJson modelJson, AuditService audit,
+                                  @org.springframework.context.annotation.Lazy WatchFolderService watchFolder) {
         this.redis = redis;
         this.mapper = mapper;
         this.invoices = invoices;
         this.autofill = autofill;
         this.modelJson = modelJson;
         this.audit = audit;
+        this.watchFolder = watchFolder;
     }
 
     public void enqueue(Invoice invoice, String pdfPath, String csvPath) {
@@ -95,6 +99,12 @@ public class ExtractionQueueService {
             invoices.save(invoice);
             audit.log(invoice.getId(), "EXTRAKTION_FERTIG",
                     "needs_ocr=" + needsOcr + ", zur Pruefung bereit");
+
+            // Ordner-Automatik: vollständig gültige Rechnungen automatisch
+            // exportieren, sonst zur manuellen Prüfung belassen.
+            if ("WATCH".equals(invoice.getSource())) {
+                watchFolder.autoProcess(invoice);
+            }
         } catch (Exception e) {
             log.error("Ergebnis fuer Rechnung {} konnte nicht verarbeitet werden", invoiceId, e);
         }

@@ -43,8 +43,13 @@ Entwicklungsdokument.
   elektronische Adressen BT-34/BT-49) - genau der Mehrwert der zweiten Instanz.
 
 ## Ausbaustufe / bewusst vereinfacht
-- **Ordner-Automatik** (A-16, „Kann"): `.env`-Schalter und Verzeichnisse
-  vorgesehen; Watch-Schleife als Ausbaustufe markiert.
+- **Ordner-Automatik** (A-16, „Kann"): implementiert und verifiziert. Der
+  Eingangsordner wird im konfigurierbaren Intervall überwacht; neue Dateien
+  laufen über denselben Weg wie ein Upload (kein Sonderpfad). Nur vollständig
+  gültige Rechnungen werden automatisch als XRechnung + Bericht in den
+  Ausgangsordner exportiert, unsichere landen im Prüfbildschirm. Verarbeitete
+  Eingangsdateien werden nach `.done`/`.error` verschoben; identische
+  Wiederablage wird per Inhalts-Hash abgefangen. Default aus (`WATCH_ENABLED`).
 - **ZUGFeRD PDF/A-3** (Kann): nach positivem PoC; Schalter `ZUGFERD_ENABLED`.
 - **Lasttest** (K-09): Skript/Vorgehen dokumentiert, nicht als Dauerlauf Teil
   dieses Stands.

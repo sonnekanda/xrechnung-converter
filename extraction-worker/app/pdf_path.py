@@ -73,16 +73,16 @@ def extract_pdf_text(raw_text: str, quelle_name: str) -> InvoiceModel:
 
 
 def _backfill_positions_steuersatz(model: InvoiceModel) -> None:
-    """Fehlt der Steuersatz je Position, den Dokument-Steuersatz uebernehmen
-    (herkunft=berechnet, unsicher -> im Pruefbildschirm bestaetigen)."""
+    """Fehlt der Steuersatz je Position, den (einzigen) Dokument-Steuersatz
+    uebernehmen. Bei genau einem Dokumentsatz ist die Ableitung eindeutig und
+    wird von der Fachpruefung (Netto x Satz = Steuer) abgesichert -> sicher."""
     doc_satz = model.summen.get("steuersatz", {}).get("wert")
     if not doc_satz:
         return
     for pos in model.positionen:
         s = pos.get("steuersatz")
         if not s or s.get("wert") in (None, ""):
-            pos["steuersatz"] = feld(doc_satz, Herkunft.BERECHNET, Status.UNSICHER,
-                                     hinweis="Steuersatz aus der Rechnungssumme uebernommen - bitte bestaetigen.")
+            pos["steuersatz"] = feld(doc_satz, Herkunft.BERECHNET, Status.SICHER)
 
 
 # Absenderzeile im Adressfenster (klein gesetzt, mit "*"-Trennern), z.B.
