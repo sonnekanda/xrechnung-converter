@@ -64,6 +64,7 @@ build:webapp:            { extends: .build-template, variables: { SERVICE: webap
 build:extraction-worker: { extends: .build-template, variables: { SERVICE: extraction-worker } }
 build:ocr-worker:        { extends: .build-template, variables: { SERVICE: ocr-worker } }
 build:invoice-engine:    { extends: .build-template, variables: { SERVICE: invoice-engine } }
+build:kosit-validator:   { extends: .build-template, variables: { SERVICE: kosit-validator } }
 
 # --- Sicherheits-Scan (Trivy) ------------------------------------------------
 .scan-template:
@@ -82,6 +83,7 @@ scan:webapp:            { extends: .scan-template, needs: [build:webapp],       
 scan:extraction-worker: { extends: .scan-template, needs: [build:extraction-worker], variables: { SERVICE: extraction-worker } }
 scan:ocr-worker:        { extends: .scan-template, needs: [build:ocr-worker],        variables: { SERVICE: ocr-worker } }
 scan:invoice-engine:    { extends: .scan-template, needs: [build:invoice-engine],    variables: { SERVICE: invoice-engine } }
+scan:kosit-validator:   { extends: .scan-template, needs: [build:kosit-validator],   variables: { SERVICE: kosit-validator } }
 
 # --- Push (nur main / Tags) --------------------------------------------------
 push:all:
@@ -94,6 +96,7 @@ push:all:
     - docker push -a "$REGISTRY/extraction-worker"
     - docker push -a "$REGISTRY/ocr-worker"
     - docker push -a "$REGISTRY/invoice-engine"
+    - docker push -a "$REGISTRY/kosit-validator"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_TAG'

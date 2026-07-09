@@ -41,6 +41,9 @@ public class Recipient {
     private String ort;
     private String land = "DE";
 
+    /** Elektronische Adresse (BT-49), z.B. E-Mail. */
+    private String email;
+
     @Column(name = "zahlungsbedingungen")
     private String zahlungsbedingungen;
 
@@ -111,6 +114,14 @@ public class Recipient {
 
     public void setLand(String land) {
         this.land = land;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getZahlungsbedingungen() {

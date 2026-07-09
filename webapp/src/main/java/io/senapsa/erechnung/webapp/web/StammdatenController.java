@@ -61,6 +61,7 @@ public class StammdatenController {
         existing.setPlz(input.getPlz());
         existing.setOrt(input.getOrt());
         existing.setLand(input.getLand());
+        existing.setEmail(input.getEmail());
         existing.setZahlungsbedingungen(input.getZahlungsbedingungen());
         return recipients.save(existing);
     }

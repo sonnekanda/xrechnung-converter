@@ -31,10 +31,18 @@ Entwicklungsdokument.
 - CI/CD-Pipeline (`.gitlab-ci.yml`) mit Test → Build → Trivy-Scan → Push, SBOM
   je Image.
 
-## Ausbaustufe / bewusst vereinfacht
+## Verifiziert (Nachtrag)
 
-- **KoSIT als zweite Validierung**: Schnittstelle vorhanden (`KOSIT_ENABLED`),
-  aktuell übernimmt die Mustang-Validierung. Zweite Instanz nachrüstbar.
+- **Doppelte amtliche Validierung** (A-10, K-05): Der KoSIT-Validator läuft als
+  eigener Dienst (`kosit-validator`) mit der offiziellen XRechnung-3.0.2-
+  Prüfkonfiguration (HTTP-Daemon, isolierter Classpath). Die invoice-engine ruft
+  ihn nach der Mustang-Prüfung auf; Export nur, wenn BEIDE bestehen (`KOSIT_ENABLED`).
+  Verifiziert: Rechnung 400009 wird von Mustang UND KoSIT als gültig akzeptiert
+  (HTTP 200). Dabei wurde sichtbar, dass Mustangs UBL erst XRechnung-konform
+  gemacht werden musste (CustomizationID `xeinkauf.de:kosit:xrechnung_3.0`,
+  elektronische Adressen BT-34/BT-49) - genau der Mehrwert der zweiten Instanz.
+
+## Ausbaustufe / bewusst vereinfacht
 - **Ordner-Automatik** (A-16, „Kann"): `.env`-Schalter und Verzeichnisse
   vorgesehen; Watch-Schleife als Ausbaustufe markiert.
 - **ZUGFeRD PDF/A-3** (Kann): nach positivem PoC; Schalter `ZUGFERD_ENABLED`.

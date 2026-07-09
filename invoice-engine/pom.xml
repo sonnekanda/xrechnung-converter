@@ -45,6 +45,9 @@
             <version>${mustang.version}</version>
         </dependency>
 
+        <!-- KoSIT-Validator laeuft als eigener Dienst (isolierter Classpath),
+             siehe Service "kosit-validator"; die Anbindung erfolgt per HTTP. -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

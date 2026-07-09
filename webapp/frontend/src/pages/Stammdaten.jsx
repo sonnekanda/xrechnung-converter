@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
-const EMPTY = { name: "", ustId: "", kundennummer: "", leitwegId: "", strasse: "", plz: "", ort: "", land: "DE", zahlungsbedingungen: "" };
+const EMPTY = { name: "", ustId: "", kundennummer: "", leitwegId: "", strasse: "", plz: "", ort: "", land: "DE", email: "", zahlungsbedingungen: "" };
 const FIELDS = [
   ["name", "Name"], ["ustId", "USt-IdNr"], ["kundennummer", "Kundennummer"], ["leitwegId", "Leitweg-ID"],
   ["strasse", "Straße"], ["plz", "PLZ"], ["ort", "Ort"], ["land", "Land"],
-  ["zahlungsbedingungen", "Zahlungsbedingungen"],
+  ["email", "E-Mail (elektr. Adresse)"], ["zahlungsbedingungen", "Zahlungsbedingungen"],
 ];
 
 export default function Stammdaten() {

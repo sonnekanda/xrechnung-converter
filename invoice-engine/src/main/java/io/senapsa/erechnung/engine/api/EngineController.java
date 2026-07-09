@@ -47,7 +47,9 @@ public class EngineController {
         log.info("Generiere XRechnung UBL fuer Rechnung {}", number);
 
         Invoice invoice = mapper.toInvoice(model);
-        byte[] ubl = generator.generateUbl(invoice);
+        String sellerEmail = wert(model, "verkaeufer_email");
+        String buyerEmail = wert(model, "kaeufer_email");
+        byte[] ubl = generator.generateUbl(invoice, sellerEmail, buyerEmail);
 
         String filename = "rechnung-" + number + ".xml";
         XRechnungValidator.ValidationResult vr = validator.validate(ubl, filename);
@@ -68,6 +70,11 @@ public class EngineController {
         byte[] xml = Base64.getDecoder().decode(request.xmlBase64());
         XRechnungValidator.ValidationResult vr = validator.validate(xml, request.filename());
         return ResponseEntity.ok(new ValidateResponse(vr.valid(), vr.kositChecked(), vr.report()));
+    }
+
+    private static String wert(JsonNode model, String kopfFeld) {
+        JsonNode w = model.path("kopf").path(kopfFeld).path("wert");
+        return w.isMissingNode() || w.isNull() ? null : w.asText();
     }
 
     public record GenerateRequest(JsonNode model, String syntax) {

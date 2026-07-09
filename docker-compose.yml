@@ -135,6 +135,7 @@ services:
     environment:
       <<: *common-env
       KOSIT_ENABLED: ${KOSIT_ENABLED:-false}
+      KOSIT_URL: ${KOSIT_URL:-http://kosit-validator:8092/}
       ZUGFERD_ENABLED: ${ZUGFERD_ENABLED:-false}
     volumes:
       - app-data:/data
@@ -145,6 +146,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+
+  # Zweite unabhaengige amtliche Validierung (offizielle KoSIT-XRechnung-Konfig).
+  kosit-validator:
+    build:
+      context: ./kosit-validator
+    image: registry.senapsa.io/erechnung/kosit-validator:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8092/server/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 180s
 
   postgres:
     image: postgres:17.2-alpine

@@ -9,6 +9,7 @@ spring:
 
 erechnung:
   kosit-enabled: ${KOSIT_ENABLED:false}
+  kosit-url: ${KOSIT_URL:http://kosit-validator:8092/}
   zugferd-enabled: ${ZUGFERD_ENABLED:false}
 
 management:

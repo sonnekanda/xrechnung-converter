@@ -80,6 +80,7 @@ public class StammdatenAutofillService {
         fillIfMissing(model, "kaeufer_plz", r.getPlz());
         fillIfMissing(model, "kaeufer_ort", r.getOrt());
         fillIfMissing(model, "kaeufer_land", r.getLand());
+        fillIfMissing(model, "kaeufer_email", r.getEmail());
         return true;
     }
 

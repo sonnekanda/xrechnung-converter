@@ -15,6 +15,8 @@ const KOPF_LABELS = {
   kaeufer_plz: "PLZ (Käufer)",
   kaeufer_ort: "Ort (Käufer)",
   kaeufer_ustid: "USt-IdNr (Käufer)",
+  kaeufer_email: "E-Mail (Käufer)",
+  verkaeufer_email: "E-Mail (Verkäufer)",
   bankverbindung_iban: "IBAN",
 };
 const SUMMEN_LABELS = {
@@ -167,6 +169,7 @@ export default function Pruefbildschirm() {
       plz: w("kaeufer_plz"),
       ort: w("kaeufer_ort"),
       land: w("kaeufer_land") || "DE",
+      email: w("kaeufer_email"),
       zahlungsbedingungen: w("zahlungsbedingungen"),
     };
     setInfo(null);
@@ -270,7 +273,7 @@ export default function Pruefbildschirm() {
         <div className="panel">
           <div className="section-title">Kopfdaten</div>
           {Object.keys(KOPF_LABELS).map((f) =>
-            kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "bankverbindung_iban"].includes(f) ? (
+            kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "kaeufer_email", "verkaeufer_email", "bankverbindung_iban"].includes(f) ? (
               <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}
