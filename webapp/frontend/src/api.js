@@ -47,12 +47,14 @@ export const api = {
   deleteStammdaten: (id) => request("DELETE", `/stammdaten/${id}`),
   company: () => request("GET", "/admin/company"),
   saveCompany: (c) => request("PUT", "/admin/company", { body: c }),
-  upload: (pdf, csv) => {
+  upload: (files) => {
     const fd = new FormData();
-    if (pdf) fd.append("pdf", pdf);
-    if (csv) fd.append("csv", csv);
+    for (const f of files) fd.append("files", f);
     return request("POST", "/files/upload", { form: fd });
   },
+  users: () => request("GET", "/admin/users"),
+  createUser: (u) => request("POST", "/admin/users", { body: u }),
+  deleteUser: (id) => request("DELETE", `/admin/users/${id}`),
   // Geschuetzte Downloads/Anzeige: mit JWT laden und als Blob-URL bereitstellen.
   blobUrl: async (path) => {
     const res = await fetch(path, { headers: { Authorization: `Bearer ${getToken()}` } });

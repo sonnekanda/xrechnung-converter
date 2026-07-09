@@ -34,7 +34,8 @@ public final class InvoiceDtos {
     public record Issue(String feld, String meldung) {
     }
 
-    public record StatusResponse(String id, String status, boolean needsOcr) {
+    public record StatusResponse(String id, String status, boolean needsOcr,
+                                 String pdfFilename, String csvFilename) {
     }
 
     public record FieldUpdateRequest(String block, String feld, String wert, Integer positionIndex) {

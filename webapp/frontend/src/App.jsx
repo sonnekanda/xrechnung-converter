@@ -7,6 +7,7 @@ import Upload from "./pages/Upload.jsx";
 import Pruefbildschirm from "./pages/Pruefbildschirm.jsx";
 import Stammdaten from "./pages/Stammdaten.jsx";
 import Firma from "./pages/Firma.jsx";
+import Benutzer from "./pages/Benutzer.jsx";
 
 function Protected({ children, adminOnly }) {
   const { user, isAdmin } = useAuth();
@@ -44,6 +45,14 @@ export default function App() {
           element={
             <Protected adminOnly>
               <Firma />
+            </Protected>
+          }
+        />
+        <Route
+          path="benutzer"
+          element={
+            <Protected adminOnly>
+              <Benutzer />
             </Protected>
           }
         />

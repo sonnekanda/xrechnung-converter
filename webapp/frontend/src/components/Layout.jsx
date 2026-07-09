@@ -33,6 +33,7 @@ export default function Layout() {
     ...(isAdmin ? [
       { to: "/firma", ico: "☗", label: "Eigene Firma" },
       { to: "/stammdaten", ico: "☷", label: "Stammdaten" },
+      { to: "/benutzer", ico: "☺", label: "Benutzer" },
     ] : []),
   ];
 

@@ -12,7 +12,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Nimmt Uploads entgegen (PDF und/oder CSV), prueft Typ/Groesse, legt die
@@ -37,18 +41,46 @@ public class UploadService {
         this.maxBytes = maxUploadMb * 1024 * 1024;
     }
 
+    /**
+     * Mehrfach-Upload: beliebig viele PDF-/CSV-Dateien. Zusammengehörige Dateien
+     * werden über den gleichen Basisnamen zu je einer Rechnung gruppiert
+     * (400009.pdf + 400009.csv -> eine Rechnung).
+     */
     @Transactional
-    public Invoice handleUpload(MultipartFile pdf, MultipartFile csv) {
-        if (isEmpty(pdf) && isEmpty(csv)) {
-            throw new ApiExceptions.BadRequest("Bitte laden Sie mindestens eine PDF- oder CSV-Datei hoch.");
+    public List<Invoice> handleMultiUpload(List<MultipartFile> files) {
+        List<MultipartFile> nonEmpty = files == null ? List.of()
+                : files.stream().filter(f -> !isEmpty(f)).toList();
+        if (nonEmpty.isEmpty()) {
+            throw new ApiExceptions.BadRequest("Bitte wählen Sie mindestens eine PDF- oder CSV-Datei.");
         }
-        validate(pdf, ".pdf", "PDF");
-        validate(csv, ".csv", "CSV");
+
+        // Basisname -> [pdf, csv]; Reihenfolge stabil halten.
+        Map<String, MultipartFile[]> groups = new LinkedHashMap<>();
+        for (MultipartFile f : nonEmpty) {
+            String name = f.getOriginalFilename() == null ? "" : f.getOriginalFilename();
+            String lower = name.toLowerCase(Locale.ROOT);
+            boolean pdf = lower.endsWith(".pdf");
+            boolean csv = lower.endsWith(".csv");
+            if (!pdf && !csv) {
+                throw new ApiExceptions.BadRequest("Es sind nur PDF- und CSV-Dateien erlaubt: " + name);
+            }
+            if (f.getSize() > maxBytes) {
+                throw new ApiExceptions.BadRequest("Die Datei \"" + name + "\" ist zu groß.");
+            }
+            String base = name.substring(0, name.lastIndexOf('.') < 0 ? name.length() : name.lastIndexOf('.'));
+            MultipartFile[] g = groups.computeIfAbsent(base, k -> new MultipartFile[2]);
+            g[pdf ? 0 : 1] = f;
+        }
+
+        List<Invoice> created = new ArrayList<>();
         try {
-            return ingest(nameOf(pdf), bytesOf(pdf), nameOf(csv), bytesOf(csv), "UPLOAD", null);
+            for (MultipartFile[] g : groups.values()) {
+                created.add(ingest(nameOf(g[0]), bytesOf(g[0]), nameOf(g[1]), bytesOf(g[1]), "UPLOAD", null));
+            }
         } catch (IOException e) {
-            throw new ApiExceptions.BadRequest("Die Datei konnte nicht gespeichert werden. Bitte erneut versuchen.");
+            throw new ApiExceptions.BadRequest("Eine Datei konnte nicht gespeichert werden. Bitte erneut versuchen.");
         }
+        return created;
     }
 
     /**

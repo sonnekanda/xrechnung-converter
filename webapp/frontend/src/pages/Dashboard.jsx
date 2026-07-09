@@ -30,6 +30,14 @@ export default function Dashboard() {
     }
   }
 
+  async function downloadReport(inv) {
+    try {
+      await api.download(api.reportPath(inv.id), `bericht-${inv.rechnungsnummer || inv.id}.xml`);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   async function remove(inv) {
     const bez = inv.rechnungsnummer ? `Rechnung ${inv.rechnungsnummer}` : "diese Rechnung";
     if (!confirm(`${bez} wirklich löschen? Datei, Daten und XML werden entfernt.`)) return;
@@ -82,6 +90,8 @@ export default function Dashboard() {
                     <>
                       <Link to={`/pruefen/${i.id}`}><button className="secondary">Ansehen</button></Link>
                       <button onClick={() => download(i)}>XML</button>
+                      <button className="secondary" title="Validierungsbericht"
+                              onClick={() => downloadReport(i)}>Bericht</button>
                     </>
                   )}
                   <button className="ghost" title="Löschen" onClick={() => remove(i)}>🗑</button>
