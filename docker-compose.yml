@@ -40,6 +40,7 @@ services:
       ROUNDING_TOLERANCE: ${ROUNDING_TOLERANCE:-0.02}
       DEFAULT_VAT_RATE: ${DEFAULT_VAT_RATE:-19}
       TARGET_SYNTAX: ${TARGET_SYNTAX:-UBL}
+      KOSIT_ENABLED: ${KOSIT_ENABLED:-false}
       BRAND_NAME: ${BRAND_NAME:-senapsa}
       BRAND_PRODUCT_TITLE: ${BRAND_PRODUCT_TITLE:-eRechnung-Konverter}
       BRAND_PRIMARY_COLOR: ${BRAND_PRIMARY_COLOR:-#0B5FFF}
@@ -48,6 +49,10 @@ services:
       WATCH_INPUT_DIR: ${WATCH_INPUT_DIR:-/data/watch/in}
       WATCH_OUTPUT_DIR: ${WATCH_OUTPUT_DIR:-/data/watch/out}
       WATCH_INTERVAL: ${WATCH_INTERVAL:-60}
+      # Lizenzcontroller-Schnittstelle (Durchsetzung optional, Default aus)
+      LICENSE_ENFORCEMENT: ${LICENSE_ENFORCEMENT:-false}
+      LICENSE_CONTROLLER_URL: ${LICENSE_CONTROLLER_URL:-}
+      LICENSE_KEY: ${LICENSE_KEY:-}
       # Eigene Firma (optionaler Erst-Seed; danach im Admin-Bereich pflegbar)
       COMPANY_NAME: ${COMPANY_NAME:-}
       COMPANY_STREET: ${COMPANY_STREET:-}

@@ -55,6 +55,8 @@ export const api = {
   users: () => request("GET", "/admin/users"),
   createUser: (u) => request("POST", "/admin/users", { body: u }),
   deleteUser: (id) => request("DELETE", `/admin/users/${id}`),
+  settings: () => request("GET", "/admin/settings"),
+  setNav: (expanded) => request("PATCH", "/me/nav", { body: { expanded } }),
   // Geschuetzte Downloads/Anzeige: mit JWT laden und als Blob-URL bereitstellen.
   blobUrl: async (path) => {
     const res = await fetch(path, { headers: { Authorization: `Bearer ${getToken()}` } });

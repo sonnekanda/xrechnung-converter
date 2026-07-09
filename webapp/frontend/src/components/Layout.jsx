@@ -3,17 +3,20 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 
-const NAV_KEY = "erechnung.navExpanded";
-
 export default function Layout() {
   const { user, isAdmin, branding, logout } = useAuth();
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(() => localStorage.getItem(NAV_KEY) !== "false");
+  // Startzustand aus dem je Benutzer gespeicherten Wert (Server), Fallback offen.
+  const [expanded, setExpanded] = useState(user?.navExpanded !== false);
   const [offen, setOffen] = useState(0);
 
-  useEffect(() => {
-    localStorage.setItem(NAV_KEY, String(expanded));
-  }, [expanded]);
+  function toggleNav() {
+    setExpanded((v) => {
+      const next = !v;
+      api.setNav(next).catch(() => {}); // je Benutzer serverseitig speichern
+      return next;
+    });
+  }
 
   // Zaehler offener Pruefungen im Navigationsmenue.
   useEffect(() => {
@@ -34,6 +37,7 @@ export default function Layout() {
       { to: "/firma", ico: "☗", label: "Eigene Firma" },
       { to: "/stammdaten", ico: "☷", label: "Stammdaten" },
       { to: "/benutzer", ico: "☺", label: "Benutzer" },
+      { to: "/einstellungen", ico: "⚙", label: "Einstellungen" },
     ] : []),
   ];
 
@@ -57,7 +61,7 @@ export default function Layout() {
           </NavLink>
         ))}
         <div className="spacer" />
-        <button className="nav-item collapse-btn" onClick={() => setExpanded((v) => !v)} title="Menü ein-/ausklappen">
+        <button className="nav-item collapse-btn" onClick={toggleNav} title="Menü ein-/ausklappen">
           <span className="ico">{expanded ? "«" : "»"}</span>
           {expanded && <span>Einklappen</span>}
         </button>

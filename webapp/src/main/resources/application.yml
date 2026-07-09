@@ -33,6 +33,8 @@ erechnung:
   rounding-tolerance: ${ROUNDING_TOLERANCE:0.02}
   invoice-engine-url: ${INVOICE_ENGINE_URL:http://localhost:8090}
   extraction-poll-ms: ${EXTRACTION_POLL_MS:1500}
+  # Nur zur Anzeige im Admin-Bereich (Durchsetzung erfolgt in der invoice-engine).
+  kosit-enabled: ${KOSIT_ENABLED:false}
   watch:
     enabled: ${WATCH_ENABLED:false}
     input-dir: ${WATCH_INPUT_DIR:/data/watch/in}
@@ -48,6 +50,10 @@ erechnung:
     name: ${BRAND_NAME:senapsa}
     product-title: ${BRAND_PRODUCT_TITLE:eRechnung-Konverter}
     primary-color: ${BRAND_PRIMARY_COLOR:#0B5FFF}
+  license:
+    enforcement: ${LICENSE_ENFORCEMENT:false}
+    controller-url: ${LICENSE_CONTROLLER_URL:}
+    key: ${LICENSE_KEY:}
 
 springdoc:
   swagger-ui:
