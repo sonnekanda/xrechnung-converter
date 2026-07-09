@@ -159,8 +159,11 @@ Der aktuelle Umsetzungsstand (verifiziert vs. Ausbaustufe) ist in
 
 | Dokument | Inhalt |
 |---|---|
+| [`docs/benutzerhandbuch.md`](docs/benutzerhandbuch.md) | Benutzerhandbuch (Hochladen → Prüfen → Herunterladen) |
+| [`docs/admin-handbuch.md`](docs/admin-handbuch.md) | Admin-Handbuch (Benutzer, Stammdaten, Firma, Konfiguration, Ordner-Automatik) |
 | [`docs/mapping-abas.md`](docs/mapping-abas.md) | Versioniertes Abas-CSV-Mapping, Feldabgleich |
+| [`docs/abnahme.md`](docs/abnahme.md) | Abnahme-Checkliste K-01 … K-11 mit Nachweisen |
 | [`docs/status.md`](docs/status.md) | Umsetzungsstand, verifizierte Teile, offene Punkte |
-| [`docs/betrieb.md`](docs/betrieb.md) | Betrieb, Backup/Restore, Health-Checks |
+| [`docs/betrieb.md`](docs/betrieb.md) | Betrieb, Backup/Restore, Health-Checks, Lasttest |
 | [`docs/oss-lizenzen.md`](docs/oss-lizenzen.md) | OSS-Komponenten & Lizenzen (SBOM-Hinweis) |
 | `swagger-ui.html` (zur Laufzeit) | API-Referenz (OpenAPI) |
