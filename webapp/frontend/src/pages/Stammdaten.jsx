@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 
-const EMPTY = { name: "", ustId: "", kundennummer: "", leitwegId: "", strasse: "", plz: "", ort: "", land: "DE", iban: "", bic: "", zahlungsbedingungen: "" };
+const EMPTY = { name: "", ustId: "", kundennummer: "", leitwegId: "", strasse: "", plz: "", ort: "", land: "DE", zahlungsbedingungen: "" };
 const FIELDS = [
   ["name", "Name"], ["ustId", "USt-IdNr"], ["kundennummer", "Kundennummer"], ["leitwegId", "Leitweg-ID"],
-  ["strasse", "Straße"], ["plz", "PLZ"], ["ort", "Ort"], ["land", "Land"], ["iban", "IBAN"], ["bic", "BIC"],
+  ["strasse", "Straße"], ["plz", "PLZ"], ["ort", "Ort"], ["land", "Land"],
   ["zahlungsbedingungen", "Zahlungsbedingungen"],
 ];
 
@@ -54,12 +54,12 @@ export default function Stammdaten() {
 
       <table className="mt">
         <thead>
-          <tr><th>Name</th><th>USt-IdNr</th><th>Kundennr.</th><th>Leitweg-ID</th><th>IBAN</th><th></th></tr>
+          <tr><th>Name</th><th>USt-IdNr</th><th>Kundennr.</th><th>Leitweg-ID</th><th>Ort</th><th></th></tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td>{r.name}</td><td>{r.ustId}</td><td>{r.kundennummer}</td><td>{r.leitwegId}</td><td>{r.iban}</td>
+              <td>{r.name}</td><td>{r.ustId}</td><td>{r.kundennummer}</td><td>{r.leitwegId}</td><td>{r.ort}</td>
               <td><button className="ghost" onClick={() => remove(r.id)}>Löschen</button></td>
             </tr>
           ))}

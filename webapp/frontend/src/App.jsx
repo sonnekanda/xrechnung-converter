@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Upload from "./pages/Upload.jsx";
 import Pruefbildschirm from "./pages/Pruefbildschirm.jsx";
 import Stammdaten from "./pages/Stammdaten.jsx";
+import Firma from "./pages/Firma.jsx";
 
 function Protected({ children, adminOnly }) {
   const { user, isAdmin } = useAuth();
@@ -35,6 +36,14 @@ export default function App() {
           element={
             <Protected adminOnly>
               <Stammdaten />
+            </Protected>
+          }
+        />
+        <Route
+          path="firma"
+          element={
+            <Protected adminOnly>
+              <Firma />
             </Protected>
           }
         />

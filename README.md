@@ -77,8 +77,9 @@ Beispieldateien zum Ausprobieren liegen unter `aufgabe/Musterrechnung *`.
    Typen und Größenlimit über `.env` (`MAX_UPLOAD_MB`).
 2. **Auslesen** – Der `extraction-worker` liest die PDF-Textebene (vorrangig)
    bzw. die CSV. Fehlt die Textebene (Scan), springt der `ocr-worker` ein.
-3. **Autofill** – Fehlende Pflichtfelder werden aus den Empfänger-Stammdaten
-   ergänzt (Leitweg-ID, Bankverbindung, …).
+3. **Autofill** – Fehlende Pflichtfelder werden automatisch ergänzt: Verkäufer
+   und Zahlungsweg (IBAN, Kontakt) aus der **eigenen Firma**, Empfänger-Adresse
+   und Leitweg-ID aus den **Empfänger-Stammdaten**.
 4. **Prüfen** – Der Prüfbildschirm zeigt links das Original-PDF, rechts die
    erkannten Daten mit Ampel je Feld. Unsichere/fehlende Werte werden korrigiert
    bzw. bestätigt.
@@ -130,6 +131,10 @@ Der gesamte Stack wird über eine einzige `.env` gesteuert; eine kommentierte
 Vorlage liegt als [`.env.example`](.env.example) bei. Wichtige Schlüssel:
 `WEBAPP_PORT`, `MAX_UPLOAD_MB`, `JWT_SECRET`, `ADMIN_EMAIL`/`ADMIN_PASSWORD`,
 `ROUNDING_TOLERANCE`, `KOSIT_ENABLED`, `WATCH_*`, Branding (`BRAND_*`).
+
+Die **eigene Firma** (Verkäufer: Name, Adresse, USt-IdNr, Kontakt, IBAN) kann
+per `COMPANY_*` vorbelegt und jederzeit im Admin-Bereich unter „Eigene Firma"
+gepflegt werden. Sie wird automatisch in jede Rechnung eingefüllt.
 
 ---
 

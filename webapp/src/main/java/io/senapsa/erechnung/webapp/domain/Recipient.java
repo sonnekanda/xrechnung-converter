@@ -41,9 +41,6 @@ public class Recipient {
     private String ort;
     private String land = "DE";
 
-    private String iban;
-    private String bic;
-
     @Column(name = "zahlungsbedingungen")
     private String zahlungsbedingungen;
 
@@ -114,22 +111,6 @@ public class Recipient {
 
     public void setLand(String land) {
         this.land = land;
-    }
-
-    public String getIban() {
-        return iban;
-    }
-
-    public void setIban(String iban) {
-        this.iban = iban;
-    }
-
-    public String getBic() {
-        return bic;
-    }
-
-    public void setBic(String bic) {
-        this.bic = bic;
     }
 
     public String getZahlungsbedingungen() {

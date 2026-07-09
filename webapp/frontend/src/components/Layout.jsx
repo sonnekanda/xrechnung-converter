@@ -30,7 +30,10 @@ export default function Layout() {
   const items = [
     { to: "/", ico: "▤", label: "Übersicht", end: true },
     { to: "/upload", ico: "⭱", label: "Hochladen" },
-    ...(isAdmin ? [{ to: "/stammdaten", ico: "☷", label: "Stammdaten" }] : []),
+    ...(isAdmin ? [
+      { to: "/firma", ico: "☗", label: "Eigene Firma" },
+      { to: "/stammdaten", ico: "☷", label: "Stammdaten" },
+    ] : []),
   ];
 
   function doLogout() {

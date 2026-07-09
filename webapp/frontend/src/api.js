@@ -45,6 +45,8 @@ export const api = {
   stammdaten: () => request("GET", "/stammdaten"),
   createStammdaten: (r) => request("POST", "/stammdaten", { body: r }),
   deleteStammdaten: (id) => request("DELETE", `/stammdaten/${id}`),
+  company: () => request("GET", "/admin/company"),
+  saveCompany: (c) => request("PUT", "/admin/company", { body: c }),
   upload: (pdf, csv) => {
     const fd = new FormData();
     if (pdf) fd.append("pdf", pdf);
