@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,10 +64,81 @@ public class FachpruefungService {
         }
 
         checkSummen(model, issues);
+        checkArithmetik(model, issues);
         checkIban(model, issues);
 
         boolean exportReady = issues.isEmpty();
         return new Report(exportReady, issues);
+    }
+
+    /**
+     * Prueft die interne Rechenkonsistenz der vom Nutzer bestaetigten Werte
+     * (es wird NICHTS still nachgerechnet): Einzelpreis×Menge = Gesamtpreis,
+     * Summe der Positionen = Netto, Netto×Satz = Steuer. Bei Abweichung wird die
+     * Stelle benannt und der erwartete Wert als Hinweis mitgegeben.
+     */
+    private void checkArithmetik(JsonNode model, List<Issue> issues) {
+        JsonNode positionen = model.path("positionen");
+        BigDecimal positionsSumme = BigDecimal.ZERO;
+        boolean positionsSummeVollstaendig = positionen.isArray() && !positionen.isEmpty();
+
+        for (int i = 0; positionen.isArray() && i < positionen.size(); i++) {
+            JsonNode pos = positionen.get(i);
+            BigDecimal einzel = pdec(pos, "einzelpreis");
+            BigDecimal menge = pdec(pos, "menge");
+            BigDecimal gesamt = pdec(pos, "gesamtpreis");
+            if (einzel != null && menge != null && gesamt != null) {
+                BigDecimal erwartet = einzel.multiply(menge).setScale(2, RoundingMode.HALF_UP);
+                if (erwartet.subtract(gesamt).abs().compareTo(toleranz) > 0) {
+                    issues.add(new Issue("position[" + (i + 1) + "].gesamtpreis",
+                            "Position " + (i + 1) + ": Einzelpreis × Menge ergibt " + fmt(erwartet)
+                                    + ", der Gesamtpreis ist aber " + fmt(gesamt)
+                                    + ". Bitte gleichen Sie die Werte an."));
+                }
+            }
+            if (gesamt != null) {
+                positionsSumme = positionsSumme.add(gesamt);
+            } else {
+                positionsSummeVollstaendig = false;
+            }
+        }
+
+        BigDecimal netto = dec(modelJson.wert(model, "summen", "nettobetrag"));
+        if (positionsSummeVollstaendig && netto != null
+                && positionsSumme.subtract(netto).abs().compareTo(toleranz) > 0) {
+            issues.add(new Issue("nettobetrag",
+                    "Die Summe der Positionen ergibt " + fmt(positionsSumme)
+                            + ", der Nettobetrag ist aber " + fmt(netto) + ". Bitte pruefen."));
+        }
+
+        BigDecimal steuer = dec(modelJson.wert(model, "summen", "steuerbetrag"));
+        BigDecimal satz = dec(modelJson.wert(model, "summen", "steuersatz"));
+        if (netto != null && steuer != null && satz != null) {
+            BigDecimal erwartet = netto.multiply(satz).divide(BigDecimal.valueOf(100))
+                    .setScale(2, RoundingMode.HALF_UP);
+            if (erwartet.subtract(steuer).abs().compareTo(toleranz) > 0) {
+                issues.add(new Issue("steuerbetrag",
+                        "Bei " + fmt(satz) + " % Steuer auf " + fmt(netto) + " ergibt sich "
+                                + fmt(erwartet) + ", der Steuerbetrag ist aber " + fmt(steuer)
+                                + ". Bitte pruefen."));
+            }
+        }
+    }
+
+    private static BigDecimal pdec(JsonNode pos, String field) {
+        JsonNode w = pos.path(field).path("wert");
+        if (w.isMissingNode() || w.isNull() || w.asText().isBlank()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(w.asText());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String fmt(BigDecimal value) {
+        return String.format(java.util.Locale.GERMANY, "%,.2f", value);
     }
 
     /** Prueft die IBAN per Pruefsumme (mod-97), sofern angegeben. */
