@@ -1,0 +1,29 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: invoice-engine
+  jackson:
+    default-property-inclusion: non_null
+
+erechnung:
+  kosit-enabled: ${KOSIT_ENABLED:false}
+  zugferd-enabled: ${ZUGFERD_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: ${LOGLEVEL:INFO}
+  pattern:
+    # Strukturierte, einzeilige Logs nach stdout; keine Secrets.
+    console: '{"ts":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX}","level":"%level","svc":"invoice-engine","logger":"%logger{20}","msg":"%replace(%msg){''"'',''\\''''}"}%n'

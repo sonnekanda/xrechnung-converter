@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: webapp
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/erechnung}
+    username: ${SPRING_DATASOURCE_USERNAME:erechnung}
+    password: ${SPRING_DATASOURCE_PASSWORD:erechnung}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: Europe/Berlin
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_MB:25}MB
+      max-request-size: ${MAX_UPLOAD_MB:25}MB
+
+erechnung:
+  data-dir: ${DATA_DIR:/data}
+  max-upload-mb: ${MAX_UPLOAD_MB:25}
+  rounding-tolerance: ${ROUNDING_TOLERANCE:0.02}
+  invoice-engine-url: ${INVOICE_ENGINE_URL:http://localhost:8090}
+  extraction-poll-ms: ${EXTRACTION_POLL_MS:1500}
+  jwt:
+    secret: ${JWT_SECRET:change-me-please-use-a-long-random-value-min-32}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES:480}
+  admin:
+    email: ${ADMIN_EMAIL:admin@example.com}
+    password: ${ADMIN_PASSWORD:change-me-in-production}
+  brand:
+    name: ${BRAND_NAME:senapsa}
+    product-title: ${BRAND_PRODUCT_TITLE:eRechnung-Konverter}
+    primary-color: ${BRAND_PRIMARY_COLOR:#0B5FFF}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: ${LOGLEVEL:INFO}

@@ -1,0 +1,99 @@
+# =============================================================================
+# senapsa eRechnung-Konverter — CI/CD (git.senapsa.io)
+# Pipeline: test -> build -> scan (Trivy) -> push (registry.senapsa.io)
+# main ist jederzeit auslieferbar; Feature-Branches via Merge Requests.
+# =============================================================================
+
+stages: [test, build, scan, push]
+
+variables:
+  REGISTRY: registry.senapsa.io/erechnung
+  # Nur CRITICAL/HIGH brechen die Pipeline (Vorgabe K-10).
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
+  DOCKER_BUILDKIT: "1"
+
+# --- Tests je Dienst ---------------------------------------------------------
+test:webapp:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - cd webapp && mvn -B -ntp verify
+  artifacts:
+    reports:
+      junit: webapp/target/surefire-reports/TEST-*.xml
+  rules:
+    - changes: [webapp/**/*]
+
+test:invoice-engine:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - cd invoice-engine && mvn -B -ntp verify
+  rules:
+    - changes: [invoice-engine/**/*]
+
+test:extraction-worker:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - cd extraction-worker
+    - pip install -r requirements.txt -r requirements-dev.txt
+    - pytest -q
+  rules:
+    - changes: [extraction-worker/**/*]
+
+# --- Build & Tagging ---------------------------------------------------------
+.build-template:
+  stage: build
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - docker build -t "$REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA" ./$SERVICE
+    - docker tag "$REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA" "$REGISTRY/$SERVICE:latest"
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        docker tag "$REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA" "$REGISTRY/$SERVICE:$CI_COMMIT_TAG"
+        docker tag "$REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA" "$REGISTRY/$SERVICE:v$CI_COMMIT_TAG"
+      fi
+    - docker save "$REGISTRY/$SERVICE:$CI_COMMIT_SHORT_SHA" -o image.tar
+  artifacts:
+    paths: [image.tar]
+    expire_in: 1 hour
+
+build:webapp:            { extends: .build-template, variables: { SERVICE: webapp } }
+build:extraction-worker: { extends: .build-template, variables: { SERVICE: extraction-worker } }
+build:ocr-worker:        { extends: .build-template, variables: { SERVICE: ocr-worker } }
+build:invoice-engine:    { extends: .build-template, variables: { SERVICE: invoice-engine } }
+
+# --- Sicherheits-Scan (Trivy) ------------------------------------------------
+.scan-template:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --input image.tar --severity "$TRIVY_SEVERITY" --exit-code 1 --no-progress
+    # SBOM je Image erzeugen und als Artefakt ablegen (OSS-Lizenzuebersicht).
+    - trivy image --input image.tar --format cyclonedx --output "sbom-$SERVICE.json"
+  artifacts:
+    paths: [sbom-*.json]
+
+scan:webapp:            { extends: .scan-template, needs: [build:webapp],            variables: { SERVICE: webapp } }
+scan:extraction-worker: { extends: .scan-template, needs: [build:extraction-worker], variables: { SERVICE: extraction-worker } }
+scan:ocr-worker:        { extends: .scan-template, needs: [build:ocr-worker],        variables: { SERVICE: ocr-worker } }
+scan:invoice-engine:    { extends: .scan-template, needs: [build:invoice-engine],    variables: { SERVICE: invoice-engine } }
+
+# --- Push (nur main / Tags) --------------------------------------------------
+push:all:
+  stage: push
+  image: docker:27
+  services: [docker:27-dind]
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login registry.senapsa.io -u "$CI_REGISTRY_USER" --password-stdin
+    - docker push -a "$REGISTRY/webapp"
+    - docker push -a "$REGISTRY/extraction-worker"
+    - docker push -a "$REGISTRY/ocr-worker"
+    - docker push -a "$REGISTRY/invoice-engine"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'

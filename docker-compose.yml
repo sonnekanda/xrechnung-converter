@@ -1,0 +1,173 @@
+# =============================================================================
+# senapsa eRechnung-Konverter — Stack (ein Compose-Stack pro Kunde)
+# Start:  cp .env.example .env  &&  docker compose up -d
+# Netz "sic-net" intern; nur WEBAPP_PORT nach aussen exponiert.
+# =============================================================================
+
+x-common-env: &common-env
+  TZ: ${TZ:-Europe/Berlin}
+  LOGLEVEL: ${LOGLEVEL:-INFO}
+
+services:
+
+  webapp:
+    build:
+      context: ./webapp
+    image: registry.senapsa.io/erechnung/webapp:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      invoice-engine:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-480}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      EXTRACTION_URL: ${EXTRACTION_URL}
+      INVOICE_ENGINE_URL: ${INVOICE_ENGINE_URL}
+      ROUNDING_TOLERANCE: ${ROUNDING_TOLERANCE:-0.02}
+      DEFAULT_VAT_RATE: ${DEFAULT_VAT_RATE:-19}
+      TARGET_SYNTAX: ${TARGET_SYNTAX:-UBL}
+      BRAND_NAME: ${BRAND_NAME:-senapsa}
+      BRAND_PRODUCT_TITLE: ${BRAND_PRODUCT_TITLE:-eRechnung-Konverter}
+      BRAND_PRIMARY_COLOR: ${BRAND_PRIMARY_COLOR:-#0B5FFF}
+    ports:
+      - "${WEBAPP_PORT:-8080}:8080"
+    volumes:
+      - app-data:/data
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  extraction-worker:
+    build:
+      context: ./extraction-worker
+    image: registry.senapsa.io/erechnung/extraction-worker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      OCR_URL: ${OCR_URL}
+      WATCH_ENABLED: ${WATCH_ENABLED:-false}
+      WATCH_INPUT_DIR: ${WATCH_INPUT_DIR:-/data/watch/in}
+      WATCH_OUTPUT_DIR: ${WATCH_OUTPUT_DIR:-/data/watch/out}
+      WATCH_INTERVAL: ${WATCH_INTERVAL:-60}
+    volumes:
+      - app-data:/data
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ocr-worker:
+    build:
+      context: ./ocr-worker
+    image: registry.senapsa.io/erechnung/ocr-worker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - app-data:/data
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  invoice-engine:
+    build:
+      context: ./invoice-engine
+    image: registry.senapsa.io/erechnung/invoice-engine:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      KOSIT_ENABLED: ${KOSIT_ENABLED:-false}
+      ZUGFERD_ENABLED: ${ZUGFERD_ENABLED:-false}
+    volumes:
+      - app-data:/data
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8090/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  postgres:
+    image: postgres:17.2-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks: [sic-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sic-net:
+    driver: bridge
+
+volumes:
+  app-data:
+  pg-data:
+  redis-data:

@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pdfplumber==0.11.4
+ocrmypdf==16.8.0
+# pikepdf gepinnt: ab 9/10 wurde Pdf.check() entfernt, das ocrmypdf 16.8 noch
+# aufruft (AttributeError am Ende der Pipeline). 8.15.1 ist kompatibel.
+pikepdf==8.15.1

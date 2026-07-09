@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://git.senapsa.io/erechnung/schema/internal-invoice-model.schema.json",
+  "title": "Internes Rechnungsmodell",
+  "description": "Einzige Zwischenschicht zwischen Erkennungs-Motoren (PDF/OCR/CSV) und der Generierung. Alle Motoren liefern ausschliesslich in dieses Modell; generiert wird ausschliesslich aus diesem Modell.",
+  "type": "object",
+  "required": ["schema_version", "kopf", "summen", "positionen"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0.0" },
+    "mapping_version": {
+      "type": "string",
+      "description": "Version des angewandten Abas-Mappings (Nachvollziehbarkeit, A-13)."
+    },
+    "quelle": {
+      "type": "object",
+      "description": "Herkunft der Eingangsdaten fuer dieses Dokument.",
+      "properties": {
+        "pdf_datei": { "type": ["string", "null"] },
+        "csv_datei": { "type": ["string", "null"] },
+        "pdf_hat_textebene": { "type": ["boolean", "null"] },
+        "ocr_verwendet": { "type": "boolean", "default": false }
+      }
+    },
+    "dokumentart": {
+      "type": "string",
+      "enum": ["rechnung", "gutschrift", "storno", "unbekannt"],
+      "description": "Gutschrift/Storno sind derzeit 'Spaeter' (nicht exportierbar)."
+    },
+    "kopf": { "$ref": "#/$defs/felderMap" },
+    "summen": { "$ref": "#/$defs/felderMap" },
+    "positionen": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": { "$ref": "#/$defs/feld" }
+      }
+    },
+    "abweichungen": {
+      "type": "array",
+      "description": "PDF<->CSV-Gegenpruefung: betroffene Felder werden gelb markiert.",
+      "items": {
+        "type": "object",
+        "required": ["feld", "pdf_wert", "csv_wert"],
+        "properties": {
+          "feld": { "type": "string" },
+          "pdf_wert": {},
+          "csv_wert": {},
+          "position_index": { "type": ["integer", "null"] }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "feld": {
+      "type": "object",
+      "required": ["wert", "herkunft", "status"],
+      "properties": {
+        "wert": {
+          "description": "Normalisierter Wert (Zahlen als String im kanonischen Format, Datum ISO-8601)."
+        },
+        "herkunft": {
+          "type": "string",
+          "enum": ["pdf", "csv", "ocr", "stammdaten", "manuell", "berechnet"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["sicher", "unsicher", "fehlt"],
+          "description": "sicher=gruen, unsicher=gelb (bestaetigen), fehlt=rot (ergaenzen)."
+        },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "hinweis": {
+          "type": ["string", "null"],
+          "description": "Grund fuer 'unsicher'/'fehlt' in Alltagssprache (z.B. 'Leitweg-ID fehlt - bitte ergaenzen')."
+        }
+      }
+    },
+    "felderMap": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/feld" }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Secrets / local config
+.env
+*.local
+
+# Java / Maven
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+# Vom Docker-Build erzeugte SPA (Build-Artefakt)
+webapp/src/main/resources/static/
+
+# Runtime data volumes (mounted at /data inside containers)
+/data/
+data/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Build / scan artifacts
+sbom*.json
+trivy-report*.json
