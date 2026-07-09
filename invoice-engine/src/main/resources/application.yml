@@ -25,6 +25,7 @@ management:
 logging:
   level:
     root: ${LOGLEVEL:INFO}
-  pattern:
-    # Strukturierte, einzeilige Logs nach stdout; keine Secrets.
-    console: '{"ts":"%d{yyyy-MM-dd''T''HH:mm:ss.SSSXXX}","level":"%level","svc":"invoice-engine","logger":"%logger{20}","msg":"%replace(%msg){''"'',''\\''''}"}%n'
+  # Strukturierte JSON-Logs nach stdout (Spring Boot Structured Logging, ECS).
+  structured:
+    format:
+      console: ecs
