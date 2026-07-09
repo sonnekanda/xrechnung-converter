@@ -63,9 +63,34 @@ public class FachpruefungService {
         }
 
         checkSummen(model, issues);
+        checkIban(model, issues);
 
         boolean exportReady = issues.isEmpty();
         return new Report(exportReady, issues);
+    }
+
+    /** Prueft die IBAN per Pruefsumme (mod-97), sofern angegeben. */
+    private void checkIban(JsonNode model, List<Issue> issues) {
+        String iban = modelJson.wert(model, "kopf", "bankverbindung_iban");
+        if (iban != null && !iban.isBlank() && !isValidIban(iban)) {
+            issues.add(new Issue("bankverbindung_iban",
+                    "Die IBAN ist ungueltig (Pruefsumme stimmt nicht) - bitte korrigieren."));
+        }
+    }
+
+    static boolean isValidIban(String raw) {
+        String iban = raw.replace(" ", "").toUpperCase();
+        if (!iban.matches("[A-Z]{2}\\d{2}[A-Z0-9]{10,30}")) {
+            return false;
+        }
+        // Erste vier Zeichen ans Ende, Buchstaben -> Zahlen (A=10 … Z=35), mod 97 == 1.
+        String rearranged = iban.substring(4) + iban.substring(0, 4);
+        StringBuilder numeric = new StringBuilder();
+        for (char c : rearranged.toCharArray()) {
+            numeric.append(Character.isLetter(c) ? (c - 'A' + 10) : (c - '0'));
+        }
+        java.math.BigInteger value = new java.math.BigInteger(numeric.toString());
+        return value.mod(java.math.BigInteger.valueOf(97)).intValue() == 1;
     }
 
     private void checkField(JsonNode model, String block, String field, List<Issue> issues) {

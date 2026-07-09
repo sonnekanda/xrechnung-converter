@@ -28,7 +28,7 @@ function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
 
-function FieldRow({ label, field, onSave }) {
+function FieldRow({ label, field, onSave, readOnly }) {
   const [value, setValue] = useState(field?.wert ?? "");
   useEffect(() => { setValue(field?.wert ?? ""); }, [field?.wert]);
   const status = field?.status || "fehlt";
@@ -47,13 +47,14 @@ function FieldRow({ label, field, onSave }) {
         <span className={`ampel ${ampelClass(status)}`} title={status} />
         <input
           value={value}
+          readOnly={readOnly}
           onChange={(e) => setValue(e.target.value)}
-          onBlur={save}
+          onBlur={readOnly ? undefined : save}
           onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
           placeholder={status === "fehlt" ? "bitte ergänzen" : ""}
         />
         {field?.herkunft && <span className="herkunft">{field.herkunft}</span>}
-        {status !== "sicher" && (
+        {!readOnly && status !== "sicher" && (
           <button
             type="button"
             className="confirm-btn"
@@ -94,8 +95,14 @@ export default function Pruefbildschirm() {
   }, [detail?.pdfFilename, id]);
 
   async function saveField(block, feld, wert, positionIndex = null) {
-    const updated = await api.patchField(id, block, feld, wert, positionIndex);
-    setDetail(updated);
+    try {
+      const updated = await api.patchField(id, block, feld, wert, positionIndex);
+      setDetail(updated);
+      setGenMsg(null); // eine Änderung verwirft ein evtl. bereits erzeugtes XML
+      setError(null);
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function generate() {
@@ -134,6 +141,7 @@ export default function Pruefbildschirm() {
   const summen = model.summen || {};
   const positionen = model.positionen || [];
   const validiert = detail.status === "VALIDIERT" || detail.status === "EXPORTIERT";
+  const readOnly = detail.status === "EXPORTIERT"; // exportierte Rechnungen sind unveränderlich
 
   return (
     <div>
@@ -152,6 +160,15 @@ export default function Pruefbildschirm() {
         <div className="banner warn">
           {model.abweichungen.length} Feld(er) weichen zwischen PDF und CSV ab (gelb markiert) – bitte prüfen.
         </div>
+      )}
+      {detail.status === "VALIDIERT" && (
+        <div className="banner ok">
+          XRechnung ist erzeugt und validiert. Änderungen an den Feldern setzen die
+          Rechnung zurück und erfordern eine erneute Erzeugung.
+        </div>
+      )}
+      {readOnly && (
+        <div className="banner ok">Diese Rechnung wurde bereits exportiert und ist schreibgeschützt.</div>
       )}
       {genMsg?.ok && <div className="banner ok">{genMsg.text}</div>}
       {genMsg && !genMsg.ok && (
@@ -176,14 +193,14 @@ export default function Pruefbildschirm() {
           <div className="section-title">Kopfdaten</div>
           {Object.keys(KOPF_LABELS).map((f) =>
             kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "bankverbindung_iban"].includes(f) ? (
-              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} onSave={(v) => saveField("kopf", f, v)} />
+              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}
 
           <div className="section-title">Summen</div>
           {Object.keys(SUMMEN_LABELS).map((f) =>
             summen[f] !== undefined ? (
-              <FieldRow key={f} label={SUMMEN_LABELS[f]} field={summen[f]} onSave={(v) => saveField("summen", f, v)} />
+              <FieldRow key={f} label={SUMMEN_LABELS[f]} field={summen[f]} readOnly={readOnly} onSave={(v) => saveField("summen", f, v)} />
             ) : null
           )}
 
@@ -196,6 +213,7 @@ export default function Pruefbildschirm() {
                   key={f}
                   label={f}
                   field={pos[f]}
+                  readOnly={readOnly}
                   onSave={(v) => saveField("position", f, v, idx)}
                 />
               ))}

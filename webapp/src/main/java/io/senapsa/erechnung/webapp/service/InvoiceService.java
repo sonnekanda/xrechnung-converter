@@ -50,11 +50,22 @@ public class InvoiceService {
         return fachpruefung.pruefe(modelJson.parse(invoice.getModelJson()));
     }
 
-    /** Korrektur/Bestaetigung eines Feldes im Pruefbildschirm (herkunft = manuell). */
+    /**
+     * Korrektur/Bestaetigung eines Feldes im Pruefbildschirm (herkunft = manuell).
+     * Eine Aenderung nach der Validierung verwirft die erzeugte XRechnung und
+     * setzt die Rechnung auf "pruefen" zurueck - so kann nie eine XML exportiert
+     * werden, die nicht zu den aktuellen Daten passt.
+     */
     @Transactional
     public Invoice updateField(UUID id, String block, String field, String wert, Integer positionIndex) {
         Invoice invoice = get(id);
-        requireStatus(invoice, InvoiceStatus.PRUEFEN);
+        if (invoice.getStatus() == InvoiceStatus.EXPORTIERT) {
+            throw new ApiExceptions.Conflict(
+                    "Diese Rechnung wurde bereits exportiert und kann nicht mehr geaendert werden.");
+        }
+        if (invoice.getStatus() != InvoiceStatus.PRUEFEN && invoice.getStatus() != InvoiceStatus.VALIDIERT) {
+            throw new ApiExceptions.Conflict("In diesem Bearbeitungsschritt ist die Aenderung nicht moeglich.");
+        }
         ObjectNode model = modelJson.parse(invoice.getModelJson());
         if ("position".equals(block) && positionIndex != null) {
             modelJson.setPosition(model, positionIndex, field, wert, "manuell", "sicher");
@@ -62,6 +73,15 @@ public class InvoiceService {
             modelJson.set(model, block, field, wert, "manuell", "sicher");
         }
         invoice.setModelJson(modelJson.write(model));
+
+        if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
+            invoice.setStatus(InvoiceStatus.PRUEFEN);
+            invoice.setValid(false);
+            invoice.setUblXmlBase64(null);
+            invoice.setValidationReport(null);
+            audit.log(id, "AENDERUNG_NACH_VALIDIERUNG",
+                    "Erzeugte XRechnung verworfen - erneute Erzeugung erforderlich");
+        }
         invoice.touch();
         String pos = positionIndex != null ? "[" + (positionIndex + 1) + "]" : "";
         audit.log(id, "FELD_KORRIGIERT", block + pos + "." + field + " = " + wert);
@@ -129,12 +149,6 @@ public class InvoiceService {
             audit.log(id, "EXPORTIERT", "XRechnung heruntergeladen");
         }
         return xml;
-    }
-
-    private void requireStatus(Invoice invoice, InvoiceStatus expected) {
-        if (invoice.getStatus() != expected) {
-            throw new ApiExceptions.Conflict("In diesem Bearbeitungsschritt ist die Aenderung nicht moeglich.");
-        }
     }
 
     private void transition(Invoice invoice, InvoiceStatus target) {
