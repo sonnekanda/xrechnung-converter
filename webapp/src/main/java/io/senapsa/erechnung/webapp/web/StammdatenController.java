@@ -33,6 +33,19 @@ public class StammdatenController {
 
     @PostMapping
     public Recipient create(@RequestBody Recipient recipient) {
+        // Eindeutigkeit über den Zuordnungsschlüssel (USt-IdNr bzw. Kundennummer),
+        // damit keine Doppel-Empfänger entstehen.
+        String ustId = recipient.getUstId();
+        if (ustId != null && !ustId.isBlank() && recipients.findFirstByUstId(ustId).isPresent()) {
+            throw new ApiExceptions.Conflict(
+                    "Ein Empfänger mit dieser USt-IdNr ist bereits vorhanden. Bitte den bestehenden Eintrag bearbeiten.");
+        }
+        String kundennummer = recipient.getKundennummer();
+        if (kundennummer != null && !kundennummer.isBlank()
+                && recipients.findFirstByKundennummer(kundennummer).isPresent()) {
+            throw new ApiExceptions.Conflict(
+                    "Ein Empfänger mit dieser Kundennummer ist bereits vorhanden. Bitte den bestehenden Eintrag bearbeiten.");
+        }
         return recipients.save(recipient);
     }
 
