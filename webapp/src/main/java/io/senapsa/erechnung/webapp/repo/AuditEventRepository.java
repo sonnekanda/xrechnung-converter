@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
     List<AuditEvent> findAllByInvoiceIdOrderByCreatedAtAsc(UUID invoiceId);
+
+    void deleteAllByInvoiceId(UUID invoiceId);
 }

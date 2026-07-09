@@ -8,6 +8,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,6 +58,13 @@ public class InvoiceController {
         List<InvoiceDtos.Issue> issues = outcome.issues().stream()
                 .map(i -> new InvoiceDtos.Issue(i.feld(), i.meldung())).toList();
         return new InvoiceDtos.GenerateResponse(outcome.valid(), issues);
+    }
+
+    /** Löscht eine Rechnung samt Dateien und Audit-Einträgen. */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        invoiceService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     /** Gibt eine validierte Rechnung wieder zur Bearbeitung frei. */

@@ -7,12 +7,18 @@ import io.senapsa.erechnung.webapp.repo.InvoiceRepository;
 import io.senapsa.erechnung.webapp.web.ApiExceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /** Orchestriert Statusmaschine, Generierung, Validierung und Export-Freigabe. */
 @Service
@@ -25,15 +31,17 @@ public class InvoiceService {
     private final FachpruefungService fachpruefung;
     private final GenerationService generation;
     private final AuditService audit;
+    private final Path uploadsDir;
 
     public InvoiceService(InvoiceRepository invoices, ModelJson modelJson,
                           FachpruefungService fachpruefung, GenerationService generation,
-                          AuditService audit) {
+                          AuditService audit, @Value("${erechnung.data-dir:/data}") String dataDir) {
         this.invoices = invoices;
         this.modelJson = modelJson;
         this.fachpruefung = fachpruefung;
         this.generation = generation;
         this.audit = audit;
+        this.uploadsDir = Path.of(dataDir, "uploads");
     }
 
     public Invoice get(UUID id) {
@@ -43,6 +51,37 @@ public class InvoiceService {
 
     public List<Invoice> list() {
         return invoices.findAllByOrderByCreatedAtDesc();
+    }
+
+    /**
+     * Löscht eine Rechnung samt Audit-Einträgen und hochgeladenen Dateien.
+     * Vorgesehen zum Aufräumen (z.B. Testdaten).
+     */
+    @Transactional
+    public void delete(UUID id) {
+        Invoice invoice = get(id); // 404, falls nicht vorhanden
+        audit.deleteForInvoice(id);
+        invoices.delete(invoice);
+        deleteUploads(id);
+        log.info("Rechnung {} gelöscht", id);
+    }
+
+    private void deleteUploads(UUID id) {
+        Path dir = uploadsDir.resolve(id.toString());
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(dir)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException e) {
+                    log.warn("Datei konnte nicht gelöscht werden: {}", p);
+                }
+            });
+        } catch (IOException e) {
+            log.warn("Upload-Verzeichnis konnte nicht gelöscht werden: {}", dir);
+        }
     }
 
     /** Fachpruefung ohne Zustandsaenderung (fuer den Pruefbildschirm/Ampel). */

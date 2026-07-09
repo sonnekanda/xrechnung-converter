@@ -26,4 +26,8 @@ public class AuditService {
     public List<AuditEvent> forInvoice(UUID invoiceId) {
         return repo.findAllByInvoiceIdOrderByCreatedAtAsc(invoiceId);
     }
+
+    public void deleteForInvoice(UUID invoiceId) {
+        repo.deleteAllByInvoiceId(invoiceId);
+    }
 }

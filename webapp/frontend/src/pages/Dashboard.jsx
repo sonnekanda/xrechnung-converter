@@ -30,6 +30,17 @@ export default function Dashboard() {
     }
   }
 
+  async function remove(inv) {
+    const bez = inv.rechnungsnummer ? `Rechnung ${inv.rechnungsnummer}` : "diese Rechnung";
+    if (!confirm(`${bez} wirklich löschen? Datei, Daten und XML werden entfernt.`)) return;
+    try {
+      await api.deleteInvoice(inv.id);
+      setInvoices((prev) => prev.filter((i) => i.id !== inv.id));
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   return (
     <div className="panel">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -72,6 +83,7 @@ export default function Dashboard() {
                       <button onClick={() => download(i)}>XML</button>
                     </>
                   )}
+                  <button className="ghost" title="Löschen" onClick={() => remove(i)}>🗑</button>
                 </td>
               </tr>
             ))}

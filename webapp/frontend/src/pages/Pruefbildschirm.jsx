@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 
 const KOPF_LABELS = {
@@ -77,6 +77,7 @@ function FieldRow({ label, field, onSave, readOnly, issue }) {
 
 export default function Pruefbildschirm() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [error, setError] = useState(null);
@@ -143,6 +144,16 @@ export default function Pruefbildschirm() {
     }
   }
 
+  async function remove() {
+    if (!confirm("Diese Rechnung wirklich löschen? Datei, Daten und XML werden entfernt.")) return;
+    try {
+      await api.deleteInvoice(id);
+      navigate("/");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   // Nur die anfängliche Ladefehler-Situation ersetzt die ganze Seite; Fehler
   // während der Bearbeitung erscheinen als Banner über dem Formular.
   if (error && !detail) return <div className="panel"><div className="banner err">{error}</div><Link to="/">Zurück</Link></div>;
@@ -172,7 +183,10 @@ export default function Pruefbildschirm() {
     <div>
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Prüfen: Rechnung {kopf.rechnungsnummer?.wert || detail.id.slice(0, 8)}</h2>
-        <Link to="/"><button className="ghost">Zurück zur Übersicht</button></Link>
+        <div className="row">
+          <button className="ghost" onClick={remove}>🗑 Löschen</button>
+          <Link to="/"><button className="ghost">Zurück zur Übersicht</button></Link>
+        </div>
       </div>
 
       {detail.needsOcr && (
