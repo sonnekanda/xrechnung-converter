@@ -30,13 +30,14 @@ function ampelClass(status) {
 
 function FieldRow({ label, field, onSave }) {
   const [value, setValue] = useState(field?.wert ?? "");
-  const [editing, setEditing] = useState(false);
   useEffect(() => { setValue(field?.wert ?? ""); }, [field?.wert]);
   const status = field?.status || "fehlt";
+  const dirty = (field?.wert ?? "") !== value;
 
+  // Speichern, wenn der Wert geändert wurde ODER das Feld noch bestätigt werden
+  // muss (gelb/rot). So wird auch ein korrekter gelber Wert per Klick grün.
   async function save() {
-    setEditing(false);
-    if ((field?.wert ?? "") !== value) await onSave(value);
+    if (dirty || status !== "sicher") await onSave(value);
   }
 
   return (
@@ -46,12 +47,23 @@ function FieldRow({ label, field, onSave }) {
         <span className={`ampel ${ampelClass(status)}`} title={status} />
         <input
           value={value}
-          onChange={(e) => { setValue(e.target.value); setEditing(true); }}
+          onChange={(e) => setValue(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
           placeholder={status === "fehlt" ? "bitte ergänzen" : ""}
         />
         {field?.herkunft && <span className="herkunft">{field.herkunft}</span>}
+        {status !== "sicher" && (
+          <button
+            type="button"
+            className="confirm-btn"
+            title="Wert bestätigen"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onSave(value)}
+          >
+            ✓
+          </button>
+        )}
       </div>
       {status !== "sicher" && field?.hinweis && <div className="hinweis">{field.hinweis}</div>}
     </div>
