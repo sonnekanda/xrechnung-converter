@@ -124,6 +124,10 @@ th { color: var(--muted); font-weight: 600; }
 .field-row .herkunft { font-size: 11px; color: var(--muted); background: #eef1f7; border-radius: 5px; padding: 1px 6px; white-space: nowrap; }
 .confirm-btn { flex: 0 0 auto; padding: 6px 10px; background: var(--gelb); color: #201800; font-weight: 700; line-height: 1; }
 .confirm-btn:hover { filter: brightness(0.95); }
+/* Feld mit Fachprüfungs-Fehler: rote Umrandung + Marker. */
+.field-row.has-issue { background: #fdf3f3; border-radius: 8px; }
+.field-row.has-issue .val input { border-color: var(--rot); box-shadow: 0 0 0 1px var(--rot) inset; }
+.issue-marker { flex: 0 0 auto; color: var(--rot); font-weight: 700; cursor: help; }
 /* Hinweis nimmt die volle Breite und rutscht damit unter das Eingabefeld. */
 .hinweis { flex-basis: 100%; color: var(--rot); font-size: 12px; margin: 0 0 0 200px; }
 .section-title { margin: 18px 0 6px; font-weight: 700; }

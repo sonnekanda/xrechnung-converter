@@ -59,6 +59,12 @@ public class InvoiceController {
         return new InvoiceDtos.GenerateResponse(outcome.valid(), issues);
     }
 
+    /** Gibt eine validierte Rechnung wieder zur Bearbeitung frei. */
+    @PostMapping("/{id}/reopen")
+    public InvoiceDtos.InvoiceDetail reopen(@PathVariable UUID id) {
+        return toDetail(invoiceService.reopen(id));
+    }
+
     /** Export der validierten XRechnung (UBL). 409, wenn nicht validiert. */
     @GetMapping("/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable UUID id) {

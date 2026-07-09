@@ -39,6 +39,7 @@ export const api = {
   patchField: (id, block, feld, wert, positionIndex = null) =>
     request("PATCH", `/invoices/${id}`, { body: { block, feld, wert, positionIndex } }),
   generate: (id) => request("POST", `/invoices/${id}/generate`),
+  reopen: (id) => request("POST", `/invoices/${id}/reopen`),
   status: (id) => request("GET", `/files/${id}/status`),
   stammdaten: () => request("GET", "/stammdaten"),
   createStammdaten: (r) => request("POST", "/stammdaten", { body: r }),

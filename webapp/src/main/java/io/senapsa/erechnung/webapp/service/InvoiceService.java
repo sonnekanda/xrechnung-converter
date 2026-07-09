@@ -129,6 +129,30 @@ public class InvoiceService {
     }
 
     /**
+     * Gibt eine validierte Rechnung wieder zur Bearbeitung frei (VALIDIERT ->
+     * PRUEFEN) und verwirft die erzeugte XML. Exportierte Rechnungen bleiben
+     * gesperrt.
+     */
+    @Transactional
+    public Invoice reopen(UUID id) {
+        Invoice invoice = get(id);
+        if (invoice.getStatus() == InvoiceStatus.EXPORTIERT) {
+            throw new ApiExceptions.Conflict(
+                    "Diese Rechnung wurde bereits exportiert und kann nicht mehr geaendert werden.");
+        }
+        if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
+            invoice.setStatus(InvoiceStatus.PRUEFEN);
+            invoice.setValid(false);
+            invoice.setUblXmlBase64(null);
+            invoice.setValidationReport(null);
+            invoice.touch();
+            invoices.save(invoice);
+            audit.log(id, "ZUR_BEARBEITUNG", "Rechnung zur Bearbeitung freigegeben");
+        }
+        return invoice;
+    }
+
+    /**
      * Liefert die validierte XRechnung-XML. Voraussetzung: Status VALIDIERT
      * (Erst-Download setzt auf EXPORTIERT) oder bereits EXPORTIERT (wiederholter
      * Download). Vor der Validierung -> 409.

@@ -28,11 +28,13 @@ function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
 
-function FieldRow({ label, field, onSave, readOnly }) {
+function FieldRow({ label, field, onSave, readOnly, issue }) {
   const [value, setValue] = useState(field?.wert ?? "");
   useEffect(() => { setValue(field?.wert ?? ""); }, [field?.wert]);
   const status = field?.status || "fehlt";
   const dirty = (field?.wert ?? "") !== value;
+  // Hinweistext: bevorzugt die Fachprüfungs-Meldung, sonst der Feld-Hinweis.
+  const meldung = issue || (status !== "sicher" ? field?.hinweis : null);
 
   // Speichern, wenn der Wert geändert wurde ODER das Feld noch bestätigt werden
   // muss (gelb/rot). So wird auch ein korrekter gelber Wert per Klick grün.
@@ -41,19 +43,21 @@ function FieldRow({ label, field, onSave, readOnly }) {
   }
 
   return (
-    <div className="field-row">
+    <div className={`field-row ${issue ? "has-issue" : ""}`}>
       <label title={field?.herkunft}>{label}</label>
       <div className="val">
-        <span className={`ampel ${ampelClass(status)}`} title={status} />
+        <span className={`ampel ${issue ? "rot" : ampelClass(status)}`} title={meldung || status} />
         <input
           value={value}
           readOnly={readOnly}
+          title={meldung || undefined}
           onChange={(e) => setValue(e.target.value)}
           onBlur={readOnly ? undefined : save}
           onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
           placeholder={status === "fehlt" ? "bitte ergänzen" : ""}
         />
         {field?.herkunft && <span className="herkunft">{field.herkunft}</span>}
+        {issue && <span className="issue-marker" title={meldung}>⚠</span>}
         {!readOnly && status !== "sicher" && (
           <button
             type="button"
@@ -66,7 +70,7 @@ function FieldRow({ label, field, onSave, readOnly }) {
           </button>
         )}
       </div>
-      {status !== "sicher" && field?.hinweis && <div className="hinweis">{field.hinweis}</div>}
+      {meldung && <div className="hinweis">{meldung}</div>}
     </div>
   );
 }
@@ -121,10 +125,27 @@ export default function Pruefbildschirm() {
   }
 
   async function download(path, filename) {
-    try { await api.download(path, filename); } catch (e) { alert(e.message); }
+    try {
+      await api.download(path, filename);
+      await load(); // Status kann sich auf EXPORTIERT geändert haben
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
-  if (error) return <div className="panel"><div className="banner err">{error}</div><Link to="/">Zurück</Link></div>;
+  async function reopen() {
+    setError(null);
+    setGenMsg(null);
+    try {
+      setDetail(await api.reopen(id));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  // Nur die anfängliche Ladefehler-Situation ersetzt die ganze Seite; Fehler
+  // während der Bearbeitung erscheinen als Banner über dem Formular.
+  if (error && !detail) return <div className="panel"><div className="banner err">{error}</div><Link to="/">Zurück</Link></div>;
   if (!detail) return <div className="panel">Wird geladen…</div>;
 
   if (!detail.model) {
@@ -141,7 +162,11 @@ export default function Pruefbildschirm() {
   const summen = model.summen || {};
   const positionen = model.positionen || [];
   const validiert = detail.status === "VALIDIERT" || detail.status === "EXPORTIERT";
-  const readOnly = detail.status === "EXPORTIERT"; // exportierte Rechnungen sind unveränderlich
+  // Nach der Validierung sind die Felder gesperrt; zum Ändern erst "Daten ändern".
+  const readOnly = validiert;
+  // Fachprüfungs-Meldungen den Feldern zuordnen (für Hervorhebung + Tooltip).
+  const issueByFeld = {};
+  (detail.issues || []).forEach((i) => { issueByFeld[i.feld] = i.meldung; });
 
   return (
     <div>
@@ -161,16 +186,23 @@ export default function Pruefbildschirm() {
           {model.abweichungen.length} Feld(er) weichen zwischen PDF und CSV ab (gelb markiert) – bitte prüfen.
         </div>
       )}
-      {detail.status === "VALIDIERT" && (
-        <div className="banner ok">
-          XRechnung ist erzeugt und validiert. Änderungen an den Feldern setzen die
-          Rechnung zurück und erfordern eine erneute Erzeugung.
+      {error && (
+        <div className="banner err row" style={{ justifyContent: "space-between" }}>
+          <span>{error}</span>
+          <button className="ghost" onClick={() => setError(null)}>Schließen</button>
         </div>
       )}
-      {readOnly && (
+      {detail.status === "VALIDIERT" && (
+        <div className="banner ok row" style={{ justifyContent: "space-between" }}>
+          <span>✓ XRechnung wurde erzeugt und amtlich validiert. Die Felder sind gesperrt;
+            zum Ändern die Rechnung wieder freigeben (die erzeugte XRechnung wird dann
+            verworfen und muss neu erstellt werden).</span>
+          <button className="secondary" onClick={reopen}>Daten ändern</button>
+        </div>
+      )}
+      {detail.status === "EXPORTIERT" && (
         <div className="banner ok">Diese Rechnung wurde bereits exportiert und ist schreibgeschützt.</div>
       )}
-      {genMsg?.ok && <div className="banner ok">{genMsg.text}</div>}
       {genMsg && !genMsg.ok && (
         <div className="banner err">
           Noch nicht exportierbar:
@@ -193,14 +225,14 @@ export default function Pruefbildschirm() {
           <div className="section-title">Kopfdaten</div>
           {Object.keys(KOPF_LABELS).map((f) =>
             kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "bankverbindung_iban"].includes(f) ? (
-              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} onSave={(v) => saveField("kopf", f, v)} />
+              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}
 
           <div className="section-title">Summen</div>
           {Object.keys(SUMMEN_LABELS).map((f) =>
             summen[f] !== undefined ? (
-              <FieldRow key={f} label={SUMMEN_LABELS[f]} field={summen[f]} readOnly={readOnly} onSave={(v) => saveField("summen", f, v)} />
+              <FieldRow key={f} label={SUMMEN_LABELS[f]} field={summen[f]} readOnly={readOnly} issue={issueByFeld[f] || (f === "bruttobetrag" ? issueByFeld.summen : undefined)} onSave={(v) => saveField("summen", f, v)} />
             ) : null
           )}
 
@@ -214,6 +246,7 @@ export default function Pruefbildschirm() {
                   label={f}
                   field={pos[f]}
                   readOnly={readOnly}
+                  issue={issueByFeld[`position[${idx + 1}].${f}`]}
                   onSave={(v) => saveField("position", f, v, idx)}
                 />
               ))}
