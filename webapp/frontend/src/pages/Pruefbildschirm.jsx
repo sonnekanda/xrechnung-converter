@@ -82,6 +82,7 @@ export default function Pruefbildschirm() {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [error, setError] = useState(null);
   const [genMsg, setGenMsg] = useState(null);
+  const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => api.invoice(id).then(setDetail).catch((e) => setError(e.message)), [id]);
@@ -154,6 +155,31 @@ export default function Pruefbildschirm() {
     }
   }
 
+  // Käufer der aktuellen Rechnung als Empfänger-Stammdaten übernehmen.
+  async function saveRecipient(kopf) {
+    const w = (f) => kopf[f]?.wert || "";
+    const recipient = {
+      name: w("kaeufer_name"),
+      ustId: w("kaeufer_ustid"),
+      kundennummer: w("kaeufer_kundennummer"),
+      leitwegId: w("leitweg_id"),
+      strasse: w("kaeufer_strasse"),
+      plz: w("kaeufer_plz"),
+      ort: w("kaeufer_ort"),
+      land: w("kaeufer_land") || "DE",
+      zahlungsbedingungen: w("zahlungsbedingungen"),
+    };
+    setInfo(null);
+    setError(null);
+    try {
+      await api.createStammdaten(recipient);
+      setInfo(`Empfänger „${recipient.name}" wurde in den Stammdaten gespeichert.`);
+    } catch (e) {
+      // 409 = bereits vorhanden -> informativ statt als Fehler.
+      setInfo(e.message);
+    }
+  }
+
   // Nur die anfängliche Ladefehler-Situation ersetzt die ganze Seite; Fehler
   // während der Bearbeitung erscheinen als Banner über dem Formular.
   if (error && !detail) return <div className="panel"><div className="banner err">{error}</div><Link to="/">Zurück</Link></div>;
@@ -206,6 +232,12 @@ export default function Pruefbildschirm() {
           <button className="ghost" onClick={() => setError(null)}>Schließen</button>
         </div>
       )}
+      {info && (
+        <div className="banner ok row" style={{ justifyContent: "space-between" }}>
+          <span>{info}</span>
+          <button className="ghost" onClick={() => setInfo(null)}>Schließen</button>
+        </div>
+      )}
       {detail.status === "VALIDIERT" && (
         <div className="banner ok row" style={{ justifyContent: "space-between" }}>
           <span>✓ XRechnung wurde erzeugt und amtlich validiert. Die Felder sind gesperrt;
@@ -241,6 +273,17 @@ export default function Pruefbildschirm() {
             kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "bankverbindung_iban"].includes(f) ? (
               <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
+          )}
+          {kopf.kaeufer_name?.wert && (
+            <div className="mt">
+              <button className="secondary" onClick={() => saveRecipient(kopf)}>
+                Empfänger in Stammdaten speichern
+              </button>
+              <div className="muted" style={{ marginTop: 4 }}>
+                Übernimmt Name, USt-IdNr, Kundennummer, Adresse und Leitweg-ID für die
+                automatische Ergänzung künftiger Rechnungen.
+              </div>
+            </div>
           )}
 
           <div className="section-title">Summen</div>
