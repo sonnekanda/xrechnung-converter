@@ -105,6 +105,13 @@ th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
 th.sortable:hover { color: var(--ink); }
 th .sort-arrow { color: var(--brand); font-size: 11px; margin-left: 3px; }
 
+/* Interaktive Tabelle: Zebra, sanfter Hover, Auswahl-Hervorhebung */
+tbody tr { transition: background-color 0.12s ease; }
+tbody tr:nth-child(even) { background: #fafbff; }
+tbody tr:hover { background: #eef4ff; }
+tbody tr.selected { background: #e3ecfe; }
+td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: pointer; }
+
 /* Filterleiste über der Tabelle */
 .toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 4px 0 16px; }
 .toolbar .field { display: flex; flex-direction: column; gap: 3px; }

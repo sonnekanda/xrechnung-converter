@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [range, setRange] = useState(monthRange());
   const [alle, setAlle] = useState(false);
   const [sort, setSort] = useState({ key: "rechnungsdatum", dir: "desc" });
+  const [selected, setSelected] = useState(() => new Set());
 
   useEffect(() => {
     let alive = true;
@@ -84,7 +85,28 @@ export default function Dashboard() {
     try {
       await api.deleteInvoice(inv.id);
       setInvoices((prev) => prev.filter((i) => i.id !== inv.id));
+      setSelected((s) => { const n = new Set(s); n.delete(inv.id); return n; });
     } catch (e) { alert(e.message); }
+  }
+
+  function toggleOne(id) {
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async function removeSelected() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!confirm(`${ids.length} Rechnung(en) wirklich löschen? Dateien, Daten und XML werden entfernt.`)) return;
+    const res = await Promise.allSettled(ids.map((id) => api.deleteInvoice(id)));
+    const failed = res.filter((r) => r.status === "rejected").length;
+    setInvoices((prev) => prev.filter((i) => !selected.has(i.id)));
+    setSelected(new Set());
+    if (failed > 0) alert(`${failed} Rechnung(en) konnten nicht gelöscht werden.`);
+  }
+
+  const allSelected = sorted.length > 0 && sorted.every((i) => selected.has(i.id));
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(sorted.map((i) => i.id)));
   }
 
   const Th = ({ label, k }) => (
@@ -119,6 +141,9 @@ export default function Dashboard() {
                  onChange={(e) => setAlle(e.target.checked)} />
           <span className="muted">Alle anzeigen</span>
         </label>
+        {selected.size > 0 && (
+          <button className="danger small" onClick={removeSelected}>🗑 {selected.size} löschen</button>
+        )}
         <div className="spacer" />
         <span className="muted">{sorted.length} Rechnung(en)</span>
       </div>
@@ -130,9 +155,11 @@ export default function Dashboard() {
         <table>
           <thead>
             <tr>
+              <th><input type="checkbox" checked={allSelected} onChange={toggleAll}
+                         title="Alle auswählen" /></th>
               <th></th>
-              <Th label="Rechnungsdatum" k="rechnungsdatum" />
               <Th label="Rechnung" k="rechnungsnummer" />
+              <Th label="Rechnungsdatum" k="rechnungsdatum" />
               <th>Dateien</th>
               <Th label="Status" k="status" />
               <th>Prüfergebnis</th>
@@ -141,15 +168,17 @@ export default function Dashboard() {
           </thead>
           <tbody>
             {sorted.map((i) => (
-              <tr key={i.id}>
+              <tr key={i.id} className={selected.has(i.id) ? "selected" : ""}>
+                <td><input type="checkbox" checked={selected.has(i.id)}
+                           onChange={() => toggleOne(i.id)} /></td>
                 <td><span className={`ampel ${ampelFor(i)}`} /></td>
-                <td>{deDatum(i.rechnungsdatum)}</td>
                 <td>
                   <strong>{i.rechnungsnummer || "—"}</strong>
                   {i.dokumentart && i.dokumentart !== "rechnung" && (
                     <div className="muted">{i.dokumentart}</div>
                   )}
                 </td>
+                <td>{deDatum(i.rechnungsdatum)}</td>
                 <td className="muted">
                   {i.pdfFilename && <div>PDF{i.needsOcr ? " (OCR nötig)" : ""}</div>}
                   {i.csvFilename && <div>CSV</div>}
