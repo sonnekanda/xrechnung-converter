@@ -28,6 +28,9 @@ public class Invoice {
     @Column(name = "rechnungsnummer")
     private String rechnungsnummer;
 
+    @Column(name = "rechnungsdatum")
+    private java.time.LocalDate rechnungsdatum;
+
     @Column(name = "pdf_filename")
     private String pdfFilename;
 
@@ -86,6 +89,14 @@ public class Invoice {
 
     public void setRechnungsnummer(String rechnungsnummer) {
         this.rechnungsnummer = rechnungsnummer;
+    }
+
+    public java.time.LocalDate getRechnungsdatum() {
+        return rechnungsdatum;
+    }
+
+    public void setRechnungsdatum(java.time.LocalDate rechnungsdatum) {
+        this.rechnungsdatum = rechnungsdatum;
     }
 
     public String getPdfFilename() {

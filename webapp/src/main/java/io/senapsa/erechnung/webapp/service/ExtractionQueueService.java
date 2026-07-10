@@ -71,6 +71,14 @@ public class ExtractionQueueService {
         }
     }
 
+    private static java.time.LocalDate parseDate(String iso) {
+        try {
+            return iso == null || iso.isBlank() ? null : java.time.LocalDate.parse(iso);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void handleResult(String invoiceId) {
         String resultJson = redis.opsForValue().get("result:" + invoiceId);
         if (resultJson == null) {
@@ -91,6 +99,7 @@ public class ExtractionQueueService {
                 autofill.apply(obj);
                 invoice.setModelJson(modelJson.write(obj));
                 invoice.setRechnungsnummer(modelJson.wert(obj, "kopf", "rechnungsnummer"));
+                invoice.setRechnungsdatum(parseDate(modelJson.wert(obj, "kopf", "rechnungsdatum")));
                 invoice.setDokumentart(obj.path("dokumentart").asText(null));
                 invoice.setMappingVersion(obj.path("mapping_version").asText(null));
             }

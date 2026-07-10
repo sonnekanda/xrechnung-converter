@@ -33,8 +33,14 @@ public class InvoiceController {
     }
 
     @GetMapping
-    public List<InvoiceDtos.InvoiceSummary> list() {
-        return invoiceService.list().stream().map(InvoiceDtos.InvoiceSummary::of).toList();
+    public List<InvoiceDtos.InvoiceSummary> list(
+            @org.springframework.web.bind.annotation.RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate von,
+            @org.springframework.web.bind.annotation.RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate bis) {
+        return invoiceService.list(von, bis).stream().map(InvoiceDtos.InvoiceSummary::of).toList();
     }
 
     @GetMapping("/{id}")

@@ -45,7 +45,8 @@ async function request(method, path, { body, form } = {}) {
 export const api = {
   login: (email, password) => request("POST", "/auth/login", { body: { email, password } }),
   branding: () => request("GET", "/branding"),
-  invoices: () => request("GET", "/invoices"),
+  invoices: (von, bis) =>
+    request("GET", `/invoices${von && bis ? `?von=${von}&bis=${bis}` : ""}`),
   invoice: (id) => request("GET", `/invoices/${id}`),
   patchField: (id, block, feld, wert, positionIndex = null) =>
     request("PATCH", `/invoices/${id}`, { body: { block, feld, wert, positionIndex } }),

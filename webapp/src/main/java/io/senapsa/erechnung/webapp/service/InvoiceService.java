@@ -53,6 +53,14 @@ public class InvoiceService {
         return invoices.findAllByOrderByCreatedAtDesc();
     }
 
+    /** Übersicht gefiltert nach Rechnungsdatum; ohne Grenzen alle. */
+    public List<Invoice> list(java.time.LocalDate von, java.time.LocalDate bis) {
+        if (von == null || bis == null) {
+            return invoices.findAllByOrderByCreatedAtDesc();
+        }
+        return invoices.findForDateRange(von, bis);
+    }
+
     /**
      * Löscht eine Rechnung samt Audit-Einträgen und hochgeladenen Dateien.
      * Vorgesehen zum Aufräumen (z.B. Testdaten).
@@ -156,6 +164,16 @@ public class InvoiceService {
             modelJson.set(model, block, field, wert, "manuell", "sicher");
         }
         invoice.setModelJson(modelJson.write(model));
+        // Anzeigefelder der Übersicht mitführen.
+        if ("kopf".equals(block) && "rechnungsnummer".equals(field)) {
+            invoice.setRechnungsnummer(wert);
+        } else if ("kopf".equals(block) && "rechnungsdatum".equals(field)) {
+            try {
+                invoice.setRechnungsdatum(wert == null || wert.isBlank() ? null : java.time.LocalDate.parse(wert));
+            } catch (Exception ignored) {
+                // ungültiges Datum -> Anzeigefeld unverändert lassen
+            }
+        }
 
         if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
             invoice.setStatus(InvoiceStatus.PRUEFEN);

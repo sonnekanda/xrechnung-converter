@@ -31,6 +31,9 @@ button {
 }
 button.secondary { background: #eef1f7; color: var(--ink); }
 button.ghost { background: transparent; color: var(--muted); }
+button.danger { background: var(--rot); color: #fff; }
+button.danger:hover { filter: brightness(0.95); }
+button.small { padding: 6px 10px; font-size: 13px; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 input, select {
   font: inherit;
@@ -98,6 +101,16 @@ input, select {
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
 th { color: var(--muted); font-weight: 600; }
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--ink); }
+th .sort-arrow { color: var(--brand); font-size: 11px; margin-left: 3px; }
+
+/* Filterleiste über der Tabelle */
+.toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 4px 0 16px; }
+.toolbar .field { display: flex; flex-direction: column; gap: 3px; }
+.toolbar label { color: var(--muted); font-size: 12px; }
+.toolbar input[type="date"] { width: auto; }
+.toolbar .spacer { flex: 1; }
 
 .status-pill {
   font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
