@@ -31,16 +31,20 @@ public class InvoiceService {
     private final FachpruefungService fachpruefung;
     private final GenerationService generation;
     private final AuditService audit;
+    private final io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed;
     private final Path uploadsDir;
 
     public InvoiceService(InvoiceRepository invoices, ModelJson modelJson,
                           FachpruefungService fachpruefung, GenerationService generation,
-                          AuditService audit, @Value("${erechnung.data-dir:/data}") String dataDir) {
+                          AuditService audit,
+                          io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed,
+                          @Value("${erechnung.data-dir:/data}") String dataDir) {
         this.invoices = invoices;
         this.modelJson = modelJson;
         this.fachpruefung = fachpruefung;
         this.generation = generation;
         this.audit = audit;
+        this.watchProcessed = watchProcessed;
         this.uploadsDir = Path.of(dataDir, "uploads");
     }
 
@@ -69,6 +73,11 @@ public class InvoiceService {
     public void delete(UUID id) {
         Invoice invoice = get(id); // 404, falls nicht vorhanden
         audit.deleteForInvoice(id);
+        // Doppelverarbeitungs-Vermerk der Ordner-Automatik freigeben, damit
+        // dieselbe Datei nach dem Löschen wieder eingelesen werden kann.
+        if (invoice.getWatchBasename() != null) {
+            watchProcessed.deleteByBasename(invoice.getWatchBasename());
+        }
         invoices.delete(invoice);
         deleteUploads(id);
         log.info("Rechnung {} gelöscht", id);

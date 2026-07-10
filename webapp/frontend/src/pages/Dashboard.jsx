@@ -79,16 +79,6 @@ export default function Dashboard() {
     try { await api.download(api.reportPath(inv.id), `bericht-${inv.rechnungsnummer || inv.id}.xml`); }
     catch (e) { alert(e.message); }
   }
-  async function remove(inv) {
-    const bez = inv.rechnungsnummer ? `Rechnung ${inv.rechnungsnummer}` : "diese Rechnung";
-    if (!confirm(`${bez} wirklich löschen? Datei, Daten und XML werden entfernt.`)) return;
-    try {
-      await api.deleteInvoice(inv.id);
-      setInvoices((prev) => prev.filter((i) => i.id !== inv.id));
-      setSelected((s) => { const n = new Set(s); n.delete(inv.id); return n; });
-    } catch (e) { alert(e.message); }
-  }
-
   function toggleOne(id) {
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
@@ -198,7 +188,6 @@ export default function Dashboard() {
                               onClick={() => downloadReport(i)}>Bericht</button>
                     </>
                   )}
-                  <button className="danger small" title="Löschen" onClick={() => remove(i)}>🗑</button>
                 </td>
               </tr>
             ))}
