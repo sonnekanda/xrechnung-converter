@@ -26,10 +26,13 @@ public class InvoiceController {
 
     private final InvoiceService invoiceService;
     private final ModelJson modelJson;
+    private final io.senapsa.erechnung.webapp.service.ValidationReportSummarizer reportSummarizer;
 
-    public InvoiceController(InvoiceService invoiceService, ModelJson modelJson) {
+    public InvoiceController(InvoiceService invoiceService, ModelJson modelJson,
+                             io.senapsa.erechnung.webapp.service.ValidationReportSummarizer reportSummarizer) {
         this.invoiceService = invoiceService;
         this.modelJson = modelJson;
+        this.reportSummarizer = reportSummarizer;
     }
 
     @GetMapping
@@ -99,6 +102,17 @@ public class InvoiceController {
             throw new ApiExceptions.NotFound("Fuer diese Rechnung liegt noch kein Validierungsbericht vor.");
         }
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_XML).body(report);
+    }
+
+    /** Menschenlesbare Zusammenfassung des Validierungsberichts (für die Anzeige). */
+    @GetMapping("/{id}/validation-report/summary")
+    public io.senapsa.erechnung.webapp.service.ValidationReportSummarizer.Summary validationReportSummary(
+            @PathVariable UUID id) {
+        Invoice invoice = invoiceService.get(id);
+        if (invoice.getValidationReport() == null) {
+            throw new ApiExceptions.NotFound("Fuer diese Rechnung liegt noch kein Validierungsbericht vor.");
+        }
+        return reportSummarizer.summarize(invoice);
     }
 
     private InvoiceDtos.InvoiceDetail toDetail(Invoice invoice) {

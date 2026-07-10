@@ -32,12 +32,14 @@ public class InvoiceService {
     private final GenerationService generation;
     private final AuditService audit;
     private final io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed;
+    private final WatchFolderService watchFolder;
     private final Path uploadsDir;
 
     public InvoiceService(InvoiceRepository invoices, ModelJson modelJson,
                           FachpruefungService fachpruefung, GenerationService generation,
                           AuditService audit,
                           io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed,
+                          @org.springframework.context.annotation.Lazy WatchFolderService watchFolder,
                           @Value("${erechnung.data-dir:/data}") String dataDir) {
         this.invoices = invoices;
         this.modelJson = modelJson;
@@ -45,6 +47,7 @@ public class InvoiceService {
         this.generation = generation;
         this.audit = audit;
         this.watchProcessed = watchProcessed;
+        this.watchFolder = watchFolder;
         this.uploadsDir = Path.of(dataDir, "uploads");
     }
 
@@ -77,6 +80,9 @@ public class InvoiceService {
         // dieselbe Datei nach dem Löschen wieder eingelesen werden kann.
         if (invoice.getWatchBasename() != null) {
             watchProcessed.deleteByBasename(invoice.getWatchBasename());
+            // Rest-Dateien in den Service-Ordnern (.processing/.done/.error)
+            // aufräumen; exportierte Ausgabedateien bleiben erhalten.
+            watchFolder.deleteInputTails(invoice.getWatchBasename());
         }
         invoices.delete(invoice);
         deleteUploads(id);

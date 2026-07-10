@@ -163,6 +163,62 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
 }
 .upload-zone.drag { border-color: var(--brand); background: #eef4ff; }
 
+/* Bericht-Dialog (Overlay) */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(16, 32, 58, 0.45);
+  display: grid; place-items: center; padding: 20px; z-index: 50;
+  animation: fade-in 0.12s ease;
+}
+.modal {
+  background: var(--panel); border-radius: 12px; box-shadow: var(--shadow);
+  width: min(640px, 100%); max-height: 85vh; overflow-y: auto; padding: 20px;
+  animation: modal-in 0.14s ease;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.modal-head h3 { margin: 0; }
+button.ghost.icon { padding: 4px 8px; font-size: 16px; line-height: 1; }
+
+.verdict {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px; margin-bottom: 14px;
+}
+.verdict.ok { background: #e3f5ea; }
+.verdict.bad { background: #fbe4e4; }
+.verdict-ico {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; font-weight: 700;
+}
+.verdict.ok .verdict-ico { background: var(--gruen); }
+.verdict.bad .verdict-ico { background: var(--rot); }
+
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.count-pill {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  background: #eef1f7; color: var(--muted);
+}
+.count-pill.sev-fehler.on { background: #fbe4e4; color: var(--rot); }
+.count-pill.sev-warnung.on { background: #fbf3d9; color: #7a5c00; }
+.count-pill.sev-hinweis.on { background: #e6eefc; color: var(--brand); }
+
+.meldungen { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.meldungen li {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+}
+.meldung-body { min-width: 0; }
+.sev-tag {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px;
+  border-radius: 5px; background: #eef1f7; color: var(--muted); white-space: nowrap;
+}
+.sev-tag.sev-fehler { background: #fbe4e4; color: var(--rot); }
+.sev-tag.sev-warnung { background: #fbf3d9; color: #7a5c00; }
+.sev-tag.sev-hinweis { background: #e6eefc; color: var(--brand); }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+.modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
 .login-wrap { display: grid; place-items: center; min-height: 100vh; }
 .login-card { width: 360px; }
 .row { display: flex; gap: 10px; align-items: center; }

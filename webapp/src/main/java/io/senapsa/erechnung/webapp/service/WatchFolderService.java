@@ -203,6 +203,34 @@ public class WatchFolderService {
         }
     }
 
+    /**
+     * Entfernt die Rest-Dateien einer gelöschten Rechnung aus den Service-
+     * Ordnern des Eingangs (.processing/.done/.error), damit sie keinen
+     * Speicher belegen. Die exportierten Ausgabedateien bleiben unberührt.
+     */
+    public void deleteInputTails(String base) {
+        if (base == null) {
+            return;
+        }
+        AppSettings s;
+        try {
+            s = settings.get();
+        } catch (Exception e) {
+            return;
+        }
+        Path input = baseInput.resolve(s.getWatchInputSubdir());
+        for (String sub : new String[]{".processing", ".done", ".error"}) {
+            for (String ext : new String[]{".pdf", ".csv"}) {
+                Path f = input.resolve(sub).resolve(base + ext);
+                try {
+                    Files.deleteIfExists(f);
+                } catch (IOException e) {
+                    log.warn("Ordner-Automatik: Rest-Datei {} konnte nicht gelöscht werden", f);
+                }
+            }
+        }
+    }
+
     /** Verschiebt die zu {@code base} gehörenden Dateien (.pdf/.csv) von einem
      *  Verzeichnis in ein anderes. */
     private void move(Path fromDir, Path toDir, String base) {

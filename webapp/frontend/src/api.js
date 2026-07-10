@@ -51,6 +51,7 @@ export const api = {
   patchField: (id, block, feld, wert, positionIndex = null) =>
     request("PATCH", `/invoices/${id}`, { body: { block, feld, wert, positionIndex } }),
   generate: (id) => request("POST", `/invoices/${id}/generate`),
+  reportSummary: (id) => request("GET", `/invoices/${id}/validation-report/summary`),
   reopen: (id) => request("POST", `/invoices/${id}/reopen`),
   deleteInvoice: (id) => request("DELETE", `/invoices/${id}`),
   status: (id) => request("GET", `/files/${id}/status`),

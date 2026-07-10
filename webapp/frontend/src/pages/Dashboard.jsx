@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import ReportModal from "../components/ReportModal";
 
 const STATUS_LABEL = {
   HOCHGELADEN: "Hochgeladen",
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [alle, setAlle] = useState(false);
   const [sort, setSort] = useState({ key: "rechnungsdatum", dir: "desc" });
   const [selected, setSelected] = useState(() => new Set());
+  const [bericht, setBericht] = useState(null); // Rechnung für den Bericht-Dialog
 
   useEffect(() => {
     let alive = true;
@@ -73,10 +75,6 @@ export default function Dashboard() {
 
   async function download(inv) {
     try { await api.download(api.exportPath(inv.id), `rechnung-${inv.rechnungsnummer || inv.id}.xml`); }
-    catch (e) { alert(e.message); }
-  }
-  async function downloadReport(inv) {
-    try { await api.download(api.reportPath(inv.id), `bericht-${inv.rechnungsnummer || inv.id}.xml`); }
     catch (e) { alert(e.message); }
   }
   function toggleOne(id) {
@@ -184,8 +182,8 @@ export default function Dashboard() {
                     <>
                       <Link to={`/pruefen/${i.id}`}><button className="secondary small">Ansehen</button></Link>
                       <button className="small" onClick={() => download(i)}>XML</button>
-                      <button className="secondary small" title="Validierungsbericht"
-                              onClick={() => downloadReport(i)}>Bericht</button>
+                      <button className="secondary small" title="Validierungsbericht anzeigen"
+                              onClick={() => setBericht(i)}>Bericht</button>
                     </>
                   )}
                 </td>
@@ -194,6 +192,8 @@ export default function Dashboard() {
           </tbody>
         </table>
       )}
+
+      {bericht && <ReportModal invoice={bericht} onClose={() => setBericht(null)} />}
     </div>
   );
 }
