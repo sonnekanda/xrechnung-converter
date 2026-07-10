@@ -9,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const abgelaufen = new URLSearchParams(window.location.search).has("abgelaufen");
 
   async function submit(e) {
     e.preventDefault();
@@ -33,6 +34,9 @@ export default function Login() {
         </div>
         <h2 style={{ marginTop: 0 }}>Anmeldung</h2>
         <p className="muted">{branding.productTitle}</p>
+        {abgelaufen && !error && (
+          <div className="banner warn">Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.</div>
+        )}
         {error && <div className="banner err">{error}</div>}
         <label className="muted">E-Mail</label>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />

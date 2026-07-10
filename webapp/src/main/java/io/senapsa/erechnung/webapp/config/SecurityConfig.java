@@ -35,6 +35,10 @@ public class SecurityConfig {
                         // Stammdaten & Administration nur fuer ADMIN.
                         .requestMatchers("/api/v1/stammdaten/**", "/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
+                // Fehlende/ungueltige Authentifizierung -> 401 (Frontend beendet die
+                // Sitzung); fehlende Berechtigung bei gueltigem Login -> 403.
+                .exceptionHandling(e -> e.authenticationEntryPoint(
+                        (req, res, ex) -> res.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED)))
                 .addFilterBefore(new JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

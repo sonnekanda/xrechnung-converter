@@ -21,6 +21,17 @@ async function request(method, path, { body, form } = {}) {
     payload = JSON.stringify(body);
   }
   const res = await fetch(`/api/v1${path}`, { method, headers, body: payload });
+  // Abgelaufenes/ungültiges Token: Sitzung beenden und zur Anmeldung führen,
+  // statt auf jeder Seite einen Ladefehler anzuzeigen. (Login selbst antwortet
+  // bei falschen Daten mit 400, nicht 401 – daher hier eindeutig.)
+  if (res.status === 401) {
+    setToken(null);
+    localStorage.removeItem("erechnung.user");
+    if (!location.pathname.endsWith("/login")) {
+      location.href = "/login?abgelaufen=1";
+    }
+    throw new Error("Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.");
+  }
   if (res.status === 204) return null;
   const isJson = (res.headers.get("content-type") || "").includes("application/json");
   const data = isJson ? await res.json() : await res.text();
