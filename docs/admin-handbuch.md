@@ -62,10 +62,16 @@ Secrets gehören ausschließlich in die `.env` der Instanz, niemals ins Image/Re
 Im Admin-Menü **Ordner-Automatik** ohne Neustart konfigurierbar:
 
 - **Automatik aktiv** – Ein-/Ausschalter.
-- **Unterordner** (Eingang/Ausgang) – relativ zu den gemounteten Basis-Ordnern.
-  Die Basis-Mountpfade (`WATCH_INPUT_DIR`/`WATCH_OUTPUT_DIR`, Standard
-  `/data/watch/in|out`) werden beim Deployment festgelegt und read-only angezeigt;
-  die Bindung an einen echten Host-Ordner erfolgt über das Docker-Volume.
+- **Ordner** (Eingang/Ausgang) – der Host-Ordner wird bei der Installation
+  festgelegt und in der Oberfläche read-only angezeigt (z. B. `C:\abas\in`).
+  Optional lässt sich ein **Unterordner** ergänzen (im Container/Host darunter).
+  Änderung des Host-Ordners = `.env` anpassen + Neustart (übernimmt später der
+  Installer/Launcher). On-premise wird der Host-Ordner über das Overlay
+  eingebunden:
+  `docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d`
+  mit `WATCH_HOST_INPUT_DIR`/`WATCH_HOST_OUTPUT_DIR` in der `.env`
+  (Windows-Pfade mit Vorwärtsslashes, z. B. `C:/abas/in`). Ohne Overlay
+  (Cloud/SFTP) liegen die Ordner im internen Datenvolumen.
 - **Prüfintervall** – wie oft der Ordner geprüft wird.
 - **Settle-Zeit** – Wartezeit, bis eine neue Datei als „stabil" gilt. So kommen
   zusammengehörige PDF/CSV-Dateien an, bevor verarbeitet wird (kein Zerlegen des

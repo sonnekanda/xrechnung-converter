@@ -49,6 +49,9 @@ services:
       WATCH_INPUT_DIR: ${WATCH_INPUT_DIR:-/data/watch/in}
       WATCH_OUTPUT_DIR: ${WATCH_OUTPUT_DIR:-/data/watch/out}
       WATCH_INTERVAL: ${WATCH_INTERVAL:-60}
+      # Host-Ordner nur zur Anzeige in der Oberflaeche (Bind erfolgt via Overlay).
+      WATCH_HOST_INPUT_DIR: ${WATCH_HOST_INPUT_DIR:-}
+      WATCH_HOST_OUTPUT_DIR: ${WATCH_HOST_OUTPUT_DIR:-}
       # Lizenzcontroller-Schnittstelle (Durchsetzung optional, Default aus)
       LICENSE_ENFORCEMENT: ${LICENSE_ENFORCEMENT:-false}
       LICENSE_CONTROLLER_URL: ${LICENSE_CONTROLLER_URL:-}

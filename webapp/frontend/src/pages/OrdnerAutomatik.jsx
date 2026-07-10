@@ -44,12 +44,21 @@ export default function OrdnerAutomatik() {
 
         <fieldset disabled={!s.watchEnabled} style={{ border: "none", padding: 0, margin: "12px 0 0", opacity: s.watchEnabled ? 1 : 0.5 }}>
           <div className="section-title">Ordner</div>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Basis-Ordner werden beim Deployment gemountet (read-only). Optional ein Unterordner:
-          </p>
+          {s.hostInputDir ? (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Die Host-Ordner werden bei der Installation festgelegt (read-only). Eine Änderung
+              erfolgt über die Installation und erfordert einen Neustart. Optional ein Unterordner:
+            </p>
+          ) : (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Es ist kein Host-Ordner eingebunden (Cloud-/SFTP-Betrieb). Die Ordner liegen im
+              internen Datenvolumen. Für on-premise das Overlay <code>docker-compose.watch.yml</code>
+              nutzen. Optional ein Unterordner:
+            </p>
+          )}
           <div className="field-row">
-            <label>Eingang (Basis)</label>
-            <div className="val"><input value={s.baseInputDir} readOnly /></div>
+            <label>Eingangsordner</label>
+            <div className="val"><input value={s.hostInputDir || s.baseInputDir} readOnly /></div>
           </div>
           <div className="field-row">
             <label>Eingang – Unterordner</label>
@@ -57,15 +66,17 @@ export default function OrdnerAutomatik() {
               onChange={(e) => set("watchInputSubdir", e.target.value)} placeholder="(optional)" /></div>
           </div>
           <div className="field-row">
-            <label>Ausgang (Basis)</label>
-            <div className="val"><input value={s.baseOutputDir} readOnly /></div>
+            <label>Ausgangsordner</label>
+            <div className="val"><input value={s.hostOutputDir || s.baseOutputDir} readOnly /></div>
           </div>
           <div className="field-row">
             <label>Ausgang – Unterordner</label>
             <div className="val"><input value={s.watchOutputSubdir}
               onChange={(e) => set("watchOutputSubdir", e.target.value)} placeholder="(optional)" /></div>
           </div>
-          <div className="muted">Effektiv: {s.effectiveInputDir} → {s.effectiveOutputDir}</div>
+          <div className="muted">
+            Effektiv: {(s.effectiveHostInput || s.effectiveInputDir)} → {(s.effectiveHostOutput || s.effectiveOutputDir)}
+          </div>
 
           <div className="section-title">Verhalten</div>
           <div className="field-row">

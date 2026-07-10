@@ -68,6 +68,13 @@ docker compose up -d      # Stack bauen und starten
 - API-Dokumentation (OpenAPI/Swagger): `http://localhost:8080/swagger-ui.html`
 - Erst-Login: `ADMIN_EMAIL` / `ADMIN_PASSWORD` aus der `.env`
 
+Für die **Ordner-Automatik on-premise** (Abas schreibt in einen Host-Ordner)
+zusätzlich das Overlay verwenden – Host-Ordner über `WATCH_HOST_*` in der `.env`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d
+```
+
 Beispieldateien zum Ausprobieren liegen unter `aufgabe/Musterrechnung *`.
 
 ---
