@@ -87,6 +87,7 @@ public class WatchFolderService {
         Path input = baseInput.resolve(s.getWatchInputSubdir());
         try {
             Files.createDirectories(input);
+            Files.createDirectories(input.resolve(".processing"));
             Files.createDirectories(input.resolve(".done"));
             Files.createDirectories(input.resolve(".error"));
 
@@ -138,15 +139,18 @@ public class WatchFolderService {
             byte[] csv = csvName != null ? Files.readAllBytes(input.resolve(csvName)) : null;
             String hash = sha256(pdf, csv);
             if (processed.existsByContentHash(hash)) {
-                moveSources(input, base, ".done"); // Duplikat aus dem Eingang räumen
+                move(input, input.resolve(".done"), base); // erneut abgelegtes Duplikat räumen
                 return;
             }
             processed.save(new WatchProcessed(hash, base));
             Invoice invoice = uploadService.ingest(pdfName, pdf, csvName, csv, "WATCH", base);
+            // Sofort aus dem Eingang nehmen, damit der nächste Scan die Dateien
+            // nicht erneut aufgreift (das endgültige Ablegen erfolgt in autoProcess).
+            move(input, input.resolve(".processing"), base);
             log.info("Ordner-Automatik: {} eingelesen als Rechnung {}", base, invoice.getId());
         } catch (Exception e) {
             log.error("Ordner-Automatik: Verarbeitung von {} fehlgeschlagen", base, e);
-            moveSources(input, base, ".error");
+            move(input, input.resolve(".error"), base);
         }
     }
 
@@ -158,6 +162,7 @@ public class WatchFolderService {
     public void autoProcess(Invoice invoice) {
         AppSettings s = settings.get();
         Path input = baseInput.resolve(s.getWatchInputSubdir());
+        Path processing = input.resolve(".processing");
         String base = invoice.getWatchBasename();
         try {
             if (s.isAutoConfirmYellow()) {
@@ -168,21 +173,21 @@ public class WatchFolderService {
             if (!report.exportReady()) {
                 audit.log(invoice.getId(), "AUTO_PRUEFUNG_OFFEN",
                         report.issues().size() + " offene Punkte - manuelle Prüfung nötig");
-                moveSources(input, base, ".error");
+                move(processing, input.resolve(".error"), base);
                 return;
             }
             InvoiceService.GenerateOutcome outcome = invoiceService.generate(invoice.getId());
             if (!outcome.valid()) {
-                moveSources(input, base, ".error");
+                move(processing, input.resolve(".error"), base);
                 return;
             }
             byte[] xml = invoiceService.export(invoice.getId());
             writeOutput(s, invoiceService.get(invoice.getId()), xml);
-            moveSources(input, base, ".done");
+            move(processing, input.resolve(".done"), base);
             log.info("Ordner-Automatik: Rechnung {} automatisch exportiert", invoice.getRechnungsnummer());
         } catch (Exception e) {
             log.error("Ordner-Automatik: Auto-Export für {} fehlgeschlagen", base, e);
-            moveSources(input, base, ".error");
+            move(processing, input.resolve(".error"), base);
         }
     }
 
@@ -198,19 +203,20 @@ public class WatchFolderService {
         }
     }
 
-    private void moveSources(Path input, String base, String targetSub) {
+    /** Verschiebt die zu {@code base} gehörenden Dateien (.pdf/.csv) von einem
+     *  Verzeichnis in ein anderes. */
+    private void move(Path fromDir, Path toDir, String base) {
         if (base == null) {
             return;
         }
         for (String ext : new String[]{".pdf", ".csv"}) {
-            Path src = input.resolve(base + ext);
+            Path src = fromDir.resolve(base + ext);
             if (Files.exists(src)) {
                 try {
-                    Files.createDirectories(input.resolve(targetSub));
-                    Files.move(src, input.resolve(targetSub).resolve(base + ext),
-                            StandardCopyOption.REPLACE_EXISTING);
+                    Files.createDirectories(toDir);
+                    Files.move(src, toDir.resolve(base + ext), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
-                    log.warn("Ordner-Automatik: {} konnte nicht nach {} verschoben werden", src, targetSub);
+                    log.warn("Ordner-Automatik: {} konnte nicht nach {} verschoben werden", src, toDir);
                 }
             }
         }
