@@ -59,9 +59,24 @@ Secrets gehören ausschließlich in die `.env` der Instanz, niemals ins Image/Re
 
 ## Ordner-Automatik (optional)
 
-Aktivierung über `WATCH_ENABLED=true`. Der Eingangsordner
-(`WATCH_INPUT_DIR`, Standard `/data/watch/in`) wird im Intervall `WATCH_INTERVAL`
-(Sekunden) überwacht. Neue Dateien laufen exakt denselben Weg wie ein Upload.
+Im Admin-Menü **Ordner-Automatik** ohne Neustart konfigurierbar:
+
+- **Automatik aktiv** – Ein-/Ausschalter.
+- **Unterordner** (Eingang/Ausgang) – relativ zu den gemounteten Basis-Ordnern.
+  Die Basis-Mountpfade (`WATCH_INPUT_DIR`/`WATCH_OUTPUT_DIR`, Standard
+  `/data/watch/in|out`) werden beim Deployment festgelegt und read-only angezeigt;
+  die Bindung an einen echten Host-Ordner erfolgt über das Docker-Volume.
+- **Prüfintervall** – wie oft der Ordner geprüft wird.
+- **Settle-Zeit** – Wartezeit, bis eine neue Datei als „stabil" gilt. So kommen
+  zusammengehörige PDF/CSV-Dateien an, bevor verarbeitet wird (kein Zerlegen des
+  Paares in zwei Rechnungen).
+- **Gelbe Felder automatisch bestätigen** – für echten Auto-Export. **OCR-Werte
+  bleiben ausgenommen** und prüfpflichtig; Scan-Rechnungen werden daher nicht
+  automatisch exportiert.
+
+Die `.env`-Werte `WATCH_ENABLED`/`WATCH_INTERVAL` dienen nur als Startvorgabe;
+maßgeblich sind danach die Einstellungen im Admin-Bereich. Neue Dateien laufen
+exakt denselben Weg wie ein Upload.
 
 - Nur **vollständig gültige** Rechnungen werden automatisch als XRechnung + Bericht
   in den Ausgangsordner (`WATCH_OUTPUT_DIR`) exportiert.

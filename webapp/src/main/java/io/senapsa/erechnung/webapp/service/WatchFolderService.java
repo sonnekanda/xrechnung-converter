@@ -1,5 +1,6 @@
 package io.senapsa.erechnung.webapp.service;
 
+import io.senapsa.erechnung.webapp.domain.AppSettings;
 import io.senapsa.erechnung.webapp.domain.Invoice;
 import io.senapsa.erechnung.webapp.domain.WatchProcessed;
 import io.senapsa.erechnung.webapp.repo.WatchProcessedRepository;
@@ -14,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
@@ -21,63 +23,80 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 
 /**
- * Ordner-Automatik (A-16, "Kann"): überwacht den Eingangsordner im konfigurierbaren
- * Intervall und verarbeitet neue Dateien über EXAKT denselben Weg wie ein Upload
- * (kein Sonderpfad). PDF+CSV werden über den gleichen Dateinamen zugeordnet.
+ * Ordner-Automatik (A-16): überwacht den Eingangsordner und verarbeitet neue
+ * Dateien über EXAKT denselben Weg wie ein Upload (kein Sonderpfad). Alle
+ * Parameter (an/aus, Intervall, Unterordner, Settle-Zeit, Auto-Bestätigen)
+ * kommen zur Laufzeit aus den {@link AppSettings} und sind im Admin-Bereich
+ * ohne Neustart änderbar. Basis-Mountpfade stammen aus der .env.
  *
- * Nur vollständig validierte Rechnungen werden automatisch als XRechnung in den
- * Ausgangsordner exportiert; unsichere/unvollständige landen im normalen
- * Prüfbildschirm. Verarbeitete Eingangsdateien werden nach erledigt/fehlerhaft
- * verschoben; identische Wiederablage führt (per Inhalts-Hash) nicht zu
- * Doppelverarbeitung.
+ * PDF+CSV werden über den gleichen Basisnamen zugeordnet; eine Gruppe wird erst
+ * verarbeitet, wenn ihre Dateien „stabil" sind (Settle-Zeit) – so gehen zeitlich
+ * versetzt geschriebene PDF/CSV-Paare nicht auseinander. Nur vollständig gültige
+ * Rechnungen werden automatisch exportiert; unsichere landen im Prüfbildschirm.
  */
 @Service
 public class WatchFolderService {
 
     private static final Logger log = LoggerFactory.getLogger(WatchFolderService.class);
+    private static final long TICK_MS = 3000; // Basis-Takt; Intervall regelt die Einstellung
 
-    private final boolean enabled;
-    private final Path inputDir;
-    private final Path outputDir;
+    private final Path baseInput;
+    private final Path baseOutput;
+    private final AppSettingsService settings;
     private final UploadService uploadService;
     private final InvoiceService invoiceService;
     private final WatchProcessedRepository processed;
     private final AuditService audit;
 
-    public WatchFolderService(@Value("${erechnung.watch.enabled:false}") boolean enabled,
-                              @Value("${erechnung.watch.input-dir:/data/watch/in}") String inputDir,
+    private volatile Instant lastScan = Instant.EPOCH;
+
+    public WatchFolderService(@Value("${erechnung.watch.input-dir:/data/watch/in}") String inputDir,
                               @Value("${erechnung.watch.output-dir:/data/watch/out}") String outputDir,
-                              UploadService uploadService, InvoiceService invoiceService,
-                              WatchProcessedRepository processed, AuditService audit) {
-        this.enabled = enabled;
-        this.inputDir = Path.of(inputDir);
-        this.outputDir = Path.of(outputDir);
+                              AppSettingsService settings, UploadService uploadService,
+                              InvoiceService invoiceService, WatchProcessedRepository processed,
+                              AuditService audit) {
+        this.baseInput = Path.of(inputDir);
+        this.baseOutput = Path.of(outputDir);
+        this.settings = settings;
         this.uploadService = uploadService;
         this.invoiceService = invoiceService;
         this.processed = processed;
         this.audit = audit;
     }
 
-    /** Zyklischer Scan des Eingangsordners. Intervall aus der .env (Sekunden). */
-    @Scheduled(fixedDelayString = "${erechnung.watch.interval-seconds:60}000",
-            initialDelayString = "${erechnung.watch.interval-seconds:60}000")
-    public void scan() {
-        if (!enabled) {
+    /** Basis-Takt; scannt nur, wenn aktiviert und das konfigurierte Intervall vorbei ist. */
+    @Scheduled(fixedDelay = TICK_MS, initialDelay = TICK_MS)
+    public void tick() {
+        AppSettings s;
+        try {
+            s = settings.get();
+        } catch (Exception e) {
+            return; // z.B. während Migration/Start
+        }
+        if (!s.isWatchEnabled()) {
             return;
         }
-        try {
-            Files.createDirectories(inputDir);
-            Files.createDirectories(outputDir);
-            Files.createDirectories(inputDir.resolve(".done"));
-            Files.createDirectories(inputDir.resolve(".error"));
+        if (Instant.now().isBefore(lastScan.plusSeconds(s.getWatchIntervalSeconds()))) {
+            return;
+        }
+        lastScan = Instant.now();
+        scan(s);
+    }
 
-            // Dateien nach Basisnamen gruppieren (PDF+CSV über gleichen Namen).
+    private void scan(AppSettings s) {
+        Path input = baseInput.resolve(s.getWatchInputSubdir());
+        try {
+            Files.createDirectories(input);
+            Files.createDirectories(input.resolve(".done"));
+            Files.createDirectories(input.resolve(".error"));
+
             Map<String, String[]> groups = new TreeMap<>(); // base -> [pdfName, csvName]
-            try (Stream<Path> files = Files.list(inputDir)) {
+            try (Stream<Path> files = Files.list(input)) {
                 files.filter(Files::isRegularFile).forEach(p -> {
                     String name = p.getFileName().toString();
                     String lower = name.toLowerCase(Locale.ROOT);
-                    String base = name.substring(0, name.lastIndexOf('.') < 0 ? name.length() : name.lastIndexOf('.'));
+                    int dot = name.lastIndexOf('.');
+                    String base = name.substring(0, dot < 0 ? name.length() : dot);
                     String[] g = groups.computeIfAbsent(base, k -> new String[2]);
                     if (lower.endsWith(".pdf")) {
                         g[0] = name;
@@ -86,25 +105,40 @@ public class WatchFolderService {
                     }
                 });
             }
-            for (var entry : groups.entrySet()) {
-                if (entry.getValue()[0] != null || entry.getValue()[1] != null) {
-                    ingestGroup(entry.getKey(), entry.getValue()[0], entry.getValue()[1]);
+            for (var e : groups.entrySet()) {
+                if ((e.getValue()[0] != null || e.getValue()[1] != null)
+                        && isSettled(input, e.getValue(), s.getWatchSettleSeconds())) {
+                    ingestGroup(input, e.getKey(), e.getValue()[0], e.getValue()[1]);
                 }
             }
         } catch (IOException e) {
-            log.error("Ordner-Automatik: Scan fehlgeschlagen", e);
+            log.error("Ordner-Automatik: Scan fehlgeschlagen ({})", input, e);
         }
     }
 
-    private void ingestGroup(String base, String pdfName, String csvName) {
+    /** Gruppe gilt als stabil, wenn ihre jüngste Datei älter als die Settle-Zeit ist. */
+    private boolean isSettled(Path input, String[] group, int settleSeconds) {
+        long newest = 0;
+        for (String name : group) {
+            if (name == null) {
+                continue;
+            }
+            try {
+                newest = Math.max(newest, Files.getLastModifiedTime(input.resolve(name)).toMillis());
+            } catch (IOException ignored) {
+                return false;
+            }
+        }
+        return newest > 0 && (System.currentTimeMillis() - newest) >= settleSeconds * 1000L;
+    }
+
+    private void ingestGroup(Path input, String base, String pdfName, String csvName) {
         try {
-            byte[] pdf = pdfName != null ? Files.readAllBytes(inputDir.resolve(pdfName)) : null;
-            byte[] csv = csvName != null ? Files.readAllBytes(inputDir.resolve(csvName)) : null;
+            byte[] pdf = pdfName != null ? Files.readAllBytes(input.resolve(pdfName)) : null;
+            byte[] csv = csvName != null ? Files.readAllBytes(input.resolve(csvName)) : null;
             String hash = sha256(pdf, csv);
             if (processed.existsByContentHash(hash)) {
-                // Identische Datei bereits verarbeitet -> nicht erneut verarbeiten,
-                // aber aus dem Eingang räumen.
-                moveToDone(base);
+                moveSources(input, base, ".done"); // Duplikat aus dem Eingang räumen
                 return;
             }
             processed.save(new WatchProcessed(hash, base));
@@ -112,68 +146,68 @@ public class WatchFolderService {
             log.info("Ordner-Automatik: {} eingelesen als Rechnung {}", base, invoice.getId());
         } catch (Exception e) {
             log.error("Ordner-Automatik: Verarbeitung von {} fehlgeschlagen", base, e);
-            moveToError(base);
+            moveSources(input, base, ".error");
         }
     }
 
     /**
-     * Nach abgeschlossener Extraktion aufgerufen (aus dem Queue-Ergebnis) für
-     * Rechnungen aus der Ordner-Automatik: nur bei vollständiger Gültigkeit
-     * automatisch exportieren, sonst zur manuellen Prüfung belassen.
+     * Nach abgeschlossener Extraktion aufgerufen: bei aktivem Auto-Bestätigen
+     * werden gelbe Nicht-OCR-Felder bestätigt; nur vollständig gültige Rechnungen
+     * werden automatisch exportiert, sonst zur manuellen Prüfung belassen.
      */
     public void autoProcess(Invoice invoice) {
+        AppSettings s = settings.get();
+        Path input = baseInput.resolve(s.getWatchInputSubdir());
         String base = invoice.getWatchBasename();
         try {
-            FachpruefungService.Report report = invoiceService.check(invoice);
+            if (s.isAutoConfirmYellow()) {
+                invoiceService.autoConfirmNonOcr(invoice.getId());
+            }
+            Invoice fresh = invoiceService.get(invoice.getId());
+            FachpruefungService.Report report = invoiceService.check(fresh);
             if (!report.exportReady()) {
                 audit.log(invoice.getId(), "AUTO_PRUEFUNG_OFFEN",
                         report.issues().size() + " offene Punkte - manuelle Prüfung nötig");
-                moveToError(base);
-                return; // bleibt im Prüfbildschirm
+                moveSources(input, base, ".error");
+                return;
             }
             InvoiceService.GenerateOutcome outcome = invoiceService.generate(invoice.getId());
             if (!outcome.valid()) {
-                moveToError(base);
+                moveSources(input, base, ".error");
                 return;
             }
             byte[] xml = invoiceService.export(invoice.getId());
-            // Frisch laden: Validierungsbericht wurde in eigener Transaktion gesetzt.
-            writeOutput(invoiceService.get(invoice.getId()), xml);
-            moveToDone(base);
+            writeOutput(s, invoiceService.get(invoice.getId()), xml);
+            moveSources(input, base, ".done");
             log.info("Ordner-Automatik: Rechnung {} automatisch exportiert", invoice.getRechnungsnummer());
         } catch (Exception e) {
             log.error("Ordner-Automatik: Auto-Export für {} fehlgeschlagen", base, e);
-            moveToError(base);
+            moveSources(input, base, ".error");
         }
     }
 
-    private void writeOutput(Invoice invoice, byte[] xml) throws IOException {
+    private void writeOutput(AppSettings s, Invoice invoice, byte[] xml) throws IOException {
+        Path output = baseOutput.resolve(s.getWatchOutputSubdir());
+        Files.createDirectories(output);
         String name = invoice.getRechnungsnummer() != null ? invoice.getRechnungsnummer()
                 : invoice.getId().toString();
-        Files.write(outputDir.resolve("rechnung-" + name + ".xml"), xml);
+        Files.write(output.resolve("rechnung-" + name + ".xml"), xml);
         if (invoice.getValidationReport() != null) {
-            Files.writeString(outputDir.resolve("rechnung-" + name + "-bericht.xml"),
+            Files.writeString(output.resolve("rechnung-" + name + "-bericht.xml"),
                     invoice.getValidationReport());
         }
     }
 
-    private void moveToDone(String base) {
-        moveSources(base, ".done");
-    }
-
-    private void moveToError(String base) {
-        moveSources(base, ".error");
-    }
-
-    private void moveSources(String base, String targetSub) {
+    private void moveSources(Path input, String base, String targetSub) {
         if (base == null) {
             return;
         }
         for (String ext : new String[]{".pdf", ".csv"}) {
-            Path src = inputDir.resolve(base + ext);
+            Path src = input.resolve(base + ext);
             if (Files.exists(src)) {
                 try {
-                    Files.move(src, inputDir.resolve(targetSub).resolve(base + ext),
+                    Files.createDirectories(input.resolve(targetSub));
+                    Files.move(src, input.resolve(targetSub).resolve(base + ext),
                             StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
                     log.warn("Ordner-Automatik: {} konnte nicht nach {} verschoben werden", src, targetSub);

@@ -90,6 +90,50 @@ public class InvoiceService {
     }
 
     /**
+     * Bestätigt automatisch alle „unsicheren" (gelben) Felder – ausgenommen
+     * OCR-Werte (die bleiben grundsätzlich prüfpflichtig). Für die Ordner-
+     * Automatik mit aktivem Auto-Bestätigen.
+     */
+    @Transactional
+    public Invoice autoConfirmNonOcr(UUID id) {
+        Invoice invoice = get(id);
+        if (invoice.getStatus() != InvoiceStatus.PRUEFEN || invoice.getModelJson() == null) {
+            return invoice;
+        }
+        ObjectNode model = modelJson.parse(invoice.getModelJson());
+        int changed = confirmBlock(model.get("kopf")) + confirmBlock(model.get("summen"));
+        com.fasterxml.jackson.databind.JsonNode positionen = model.get("positionen");
+        if (positionen != null && positionen.isArray()) {
+            for (com.fasterxml.jackson.databind.JsonNode pos : positionen) {
+                changed += confirmBlock(pos);
+            }
+        }
+        if (changed > 0) {
+            invoice.setModelJson(modelJson.write(model));
+            invoice.touch();
+            invoices.save(invoice);
+            audit.log(id, "AUTO_BESTAETIGT", changed + " unsichere Felder automatisch bestätigt (ohne OCR)");
+        }
+        return invoice;
+    }
+
+    private static int confirmBlock(com.fasterxml.jackson.databind.JsonNode block) {
+        if (!(block instanceof ObjectNode obj)) {
+            return 0;
+        }
+        int n = 0;
+        for (com.fasterxml.jackson.databind.JsonNode f : obj) {
+            if (f instanceof ObjectNode field
+                    && "unsicher".equals(field.path("status").asText())
+                    && !"ocr".equals(field.path("herkunft").asText())) {
+                field.put("status", "sicher");
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /**
      * Korrektur/Bestaetigung eines Feldes im Pruefbildschirm (herkunft = manuell).
      * Eine Aenderung nach der Validierung verwirft die erzeugte XRechnung und
      * setzt die Rechnung auf "pruefen" zurueck - so kann nie eine XML exportiert
