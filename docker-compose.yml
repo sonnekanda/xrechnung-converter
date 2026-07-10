@@ -1,6 +1,6 @@
 # =============================================================================
 # senapsa eRechnung-Konverter — Stack (ein Compose-Stack pro Kunde)
-# Start:  cp .env.example .env  &&  docker compose up -d
+# Start:  cp .example.env .env  &&  docker compose up -d
 # Netz "sic-net" intern; nur WEBAPP_PORT nach aussen exponiert.
 # =============================================================================
 

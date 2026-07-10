@@ -1,0 +1,18 @@
+Proprietäre Lizenz — senapsa eRechnung-Konverter
+
+Copyright (c) 2026 senapsa. Alle Rechte vorbehalten.
+
+Diese Software und die zugehörige Dokumentation sind vertrauliches und
+urheberrechtlich geschütztes Eigentum von senapsa. Nutzung, Vervielfältigung,
+Weitergabe oder Veränderung sind nur im Rahmen einer gültigen, von senapsa
+erteilten Lizenz zulässig.
+
+Ohne ausdrückliche schriftliche Genehmigung von senapsa ist es untersagt,
+die Software oder Teile davon außerhalb der lizenzierten Nutzung zu verwenden,
+zu kopieren, zu verbreiten oder öffentlich zugänglich zu machen.
+
+Verwendete Open-Source-Komponenten unterliegen ihren jeweiligen Lizenzen;
+eine Übersicht findet sich in docs/oss-lizenzen.md sowie in den je Image
+erzeugten SBOMs.
+
+DIE SOFTWARE WIRD OHNE MÄNGELGEWÄHR ("AS IS") BEREITGESTELLT.

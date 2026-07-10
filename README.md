@@ -24,7 +24,7 @@ Ein Docker-Compose-Stack pro Kunde, cloud- und on-premise-identisch.
 
 ## Architektur
 
-Sechs Dienste in einem internen Netz `sic-net`; nur der Port der Webanwendung
+Sieben Dienste in einem internen Netz `sic-net`; nur der Port der Webanwendung
 ist nach außen exponiert.
 
 | Dienst | Technik | Aufgabe |
@@ -32,7 +32,8 @@ ist nach außen exponiert.
 | `webapp` | Spring Boot + React (SPA) | UI + API `/api/v1`, Auth/Rollen, Statusmaschine, Stammdaten, Export-Freigabe |
 | `extraction-worker` | Python | PDF-Textextraktion (pdfplumber), versioniertes Abas-CSV-Mapping, PDF↔CSV-Gegenprüfung |
 | `ocr-worker` | Python + Tesseract/ocrmypdf | OCR für Scans ohne Textebene (immer prüfpflichtig) |
-| `invoice-engine` | Java + Mustangproject | Generierung XRechnung-UBL + amtliche Validierung (XSD + Schematron) |
+| `invoice-engine` | Java + Mustangproject | Generierung XRechnung-UBL + erste amtliche Validierung |
+| `kosit-validator` | KoSIT-Standalone-Daemon | Zweite unabhängige amtliche Validierung (XRechnung 3.0.2) |
 | `postgres` | PostgreSQL 17 | Benutzer, Stammdaten, Rechnungsmodell, Audit-Log |
 | `redis` | Redis 7 | Job-Queue für die asynchrone Extraktion/OCR |
 
@@ -59,7 +60,7 @@ White-Label (keine OSS-Namen für den Kunden sichtbar).
 Voraussetzung: Docker + Docker Compose.
 
 ```bash
-cp .env.example .env      # Werte anpassen (Passwörter, JWT_SECRET, Admin-Konto)
+cp .example.env .env      # Werte anpassen (Passwörter, JWT_SECRET, Admin-Konto)
 docker compose up -d      # Stack bauen und starten
 ```
 
@@ -128,7 +129,7 @@ Gutschriften/Stornos werden erkannt und (gemäß Scope „Später") nicht export
 ## Konfiguration
 
 Der gesamte Stack wird über eine einzige `.env` gesteuert; eine kommentierte
-Vorlage liegt als [`.env.example`](.env.example) bei. Wichtige Schlüssel:
+Vorlage liegt als [`.example.env`](.example.env) bei. Wichtige Schlüssel:
 `WEBAPP_PORT`, `MAX_UPLOAD_MB`, `JWT_SECRET`, `ADMIN_EMAIL`/`ADMIN_PASSWORD`,
 `ROUNDING_TOLERANCE`, `KOSIT_ENABLED`, `WATCH_*`, Branding (`BRAND_*`).
 

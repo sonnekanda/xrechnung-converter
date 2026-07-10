@@ -43,6 +43,9 @@ erechnung:
   jwt:
     secret: ${JWT_SECRET:change-me-please-use-a-long-random-value-min-32}
     expiry-minutes: ${JWT_EXPIRY_MINUTES:480}
+  auth:
+    max-login-failures: ${AUTH_MAX_LOGIN_FAILURES:5}
+    lock-minutes: ${AUTH_LOCK_MINUTES:15}
   admin:
     email: ${ADMIN_EMAIL:admin@example.com}
     password: ${ADMIN_PASSWORD:change-me-in-production}

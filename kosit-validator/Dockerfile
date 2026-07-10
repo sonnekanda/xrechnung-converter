@@ -9,6 +9,7 @@ ARG CONFIG_URL="https://github.com/itplr-kosit/validator-configuration-xrechnung
 
 RUN set -eux; \
     for i in 1 2 3; do apt-get update && break || sleep 5; done; \
+    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends curl gosu unzip; \
     rm -rf /var/lib/apt/lists/*; \
     groupadd -r app && useradd -r -g app -u 10001 app; \

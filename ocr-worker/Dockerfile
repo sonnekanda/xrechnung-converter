@@ -4,6 +4,7 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1
 # OCR-Systemabhaengigkeiten: Tesseract (deutsch), Ghostscript, qpdf.
 RUN set -eux; \
     for i in 1 2 3; do apt-get update && break || sleep 5; done; \
+    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
         curl gosu tesseract-ocr tesseract-ocr-deu ghostscript qpdf unpaper pngquant; \
     rm -rf /var/lib/apt/lists/*; \

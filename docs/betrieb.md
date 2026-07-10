@@ -14,7 +14,7 @@ Alle Dienste haben Health-Checks; `webapp` startet erst, wenn `postgres`,
 
 ## Konfiguration
 
-Ausschließlich über `.env` (Vorlage: `.env.example`). Nach Änderungen:
+Ausschließlich über `.env` (Vorlage: `.example.env`). Nach Änderungen:
 `docker compose up -d` (betroffene Container werden neu erstellt). Secrets
 niemals ins Image/Repo – nur in die `.env` der Instanz.
 

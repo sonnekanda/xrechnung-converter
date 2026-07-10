@@ -16,6 +16,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
 # curl fuer Healthcheck, gosu fuer sicheren User-Wechsel im entrypoint.
 RUN set -eux; \
     for i in 1 2 3; do apt-get update && break || sleep 5; done; \
+    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends curl gosu; \
     rm -rf /var/lib/apt/lists/*; \
     groupadd -r app && useradd -r -g app -u 10001 app; \

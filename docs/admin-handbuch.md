@@ -41,7 +41,7 @@ Adresse, **E-Mail (elektronische Adresse, BT-49)** und Zahlungsbedingungen.
 ## Konfiguration (.env)
 
 Der gesamte Stack wird über eine einzige `.env` gesteuert (Vorlage:
-`.env.example`). Änderungen wirken nach `docker compose up -d`. Wichtige Schlüssel:
+`.example.env`). Änderungen wirken nach `docker compose up -d`. Wichtige Schlüssel:
 
 | Schlüssel | Bedeutung |
 |---|---|

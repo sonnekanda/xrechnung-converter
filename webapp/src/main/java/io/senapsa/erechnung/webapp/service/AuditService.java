@@ -23,6 +23,11 @@ public class AuditService {
         repo.save(new AuditEvent(invoiceId, action, detail, actor));
     }
 
+    /** Sicherheitsrelevantes Ereignis ohne Rechnungsbezug (Login, Admin-Änderung). */
+    public void logSecurity(String action, String detail, String actor) {
+        repo.save(new AuditEvent(null, action, detail, actor));
+    }
+
     public List<AuditEvent> forInvoice(UUID invoiceId) {
         return repo.findAllByInvoiceIdOrderByCreatedAtAsc(invoiceId);
     }

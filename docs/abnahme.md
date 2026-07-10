@@ -12,7 +12,7 @@ zum Verifikationsvorgehen in [`status.md`](status.md).
 | **K-05** | Gültige XRechnung-XML (UBL) erzeugt + validiert; ZUGFeRD gemäß PoC | ✅ (UBL) | 400009 von Mustang **und** KoSIT (XRechnung 3.0.2) als gültig akzeptiert. ZUGFeRD = „Kann", nach PoC (offen). |
 | **K-06** | Ungültige Dateien nie exportiert; Erfolg = XML + Validierungsbericht; Fehler feldbezogen | ✅ | Export nur bei doppelter Gültigkeit; XML + Bericht herunterladbar (UI/Ordner-Automatik); feldbezogene Meldungen mit Hervorhebung + Tooltip. |
 | **K-07** | Nur senapsa-UI sichtbar (White-Label); Bedienung ohne Schulung | ✅ | Branding über `.env` (`BRAND_*`); keine OSS-Namen in der UI; Alltagssprache; Benutzerhandbuch. Motoren im internen Netz gekapselt. |
-| **K-08** | `docker compose up` startet Stack aus `.env`; non-root; nur App-Port exponiert | ✅ | `docker-compose.yml` mit `sic-net`, Healthchecks, `depends_on: service_healthy`; alle Dienste non-root (`entrypoint.sh` + `gosu`); nur `WEBAPP_PORT` exponiert; kommentierte `.env.example`. |
+| **K-08** | `docker compose up` startet Stack aus `.env`; non-root; nur App-Port exponiert | ✅ | `docker-compose.yml` mit `sic-net`, Healthchecks, `depends_on: service_healthy`; alle Dienste non-root (`entrypoint.sh` + `gosu`); nur `WEBAPP_PORT` exponiert; kommentierte `.example.env`. |
 | **K-09** | Lasttest: 200 Rechnungen/Tag, 5 parallele Nutzer | ✅ | `scripts/loadtest.py`; Messung: 30/30 ok, ~186 Rechnungen/Min (~11 000/h), p95 1,8 s → Auslegungsziel weit übertroffen. Siehe `betrieb.md`. |
 | **K-10** | CI/CD mit Trivy-Scan; alles unter `git.senapsa.io`; Logs/Audit/Health; OSS-Lizenzen dokumentiert | ✅ | `.gitlab-ci.yml` (Test→Build→Trivy CRITICAL/HIGH→Push, SBOM je Image); strukturierte JSON-Logs (ECS) + Worker-JSON-Logs; Audit-Log (`audit_event`); `/health` je Dienst; `docs/oss-lizenzen.md`. |
 | **K-11** | Ordner-Automatik (falls aktiv): korrekte Intervallverarbeitung, nur validierte Auto-Exports | ✅ | Watch-Folder verifiziert: 400009 aus Ordner → automatisch validiert (Mustang+KoSIT) → XML+Bericht in Ausgangsordner; Eingang nach `.done`; kein Auto-Export bei unsicheren Feldern; Inhalts-Hash gegen Doppelverarbeitung. |
@@ -24,7 +24,7 @@ zum Verifikationsvorgehen in [`status.md`](status.md).
 - Pflichtfelder/Summen/Steuern geprüft, kein Export bei Fehlern (kein Bypass) ✅
 - XRechnung UBL erzeugt + validiert (Mustang + KoSIT), Bericht je Datei ✅
 - White-Label; Motoren gekapselt/austauschbar; OSS-Lizenzübersicht (SBOM) ✅
-- Compose-Stack aus einer `.env`; kommentierte `.env.example`; non-root ✅
+- Compose-Stack aus einer `.env`; kommentierte `.example.env`; non-root ✅
 - Logs, Audit-Log, Health-Checks; CI/CD mit Trivy ✅
 - Lasttest bestanden ✅
 - Tests (Unit/Integration/Negativ) grün; Doku (README, API/OpenAPI, Benutzer-,

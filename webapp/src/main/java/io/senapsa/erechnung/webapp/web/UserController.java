@@ -3,6 +3,7 @@ package io.senapsa.erechnung.webapp.web;
 import io.senapsa.erechnung.webapp.domain.AppUser;
 import io.senapsa.erechnung.webapp.domain.Role;
 import io.senapsa.erechnung.webapp.repo.AppUserRepository;
+import io.senapsa.erechnung.webapp.service.AuditService;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,12 @@ public class UserController {
 
     private final AppUserRepository users;
     private final PasswordEncoder encoder;
+    private final AuditService audit;
 
-    public UserController(AppUserRepository users, PasswordEncoder encoder) {
+    public UserController(AppUserRepository users, PasswordEncoder encoder, AuditService audit) {
         this.users = users;
         this.encoder = encoder;
+        this.audit = audit;
     }
 
     @GetMapping
@@ -46,6 +49,7 @@ public class UserController {
         }
         Role role = "ADMIN".equalsIgnoreCase(req.role()) ? Role.ADMIN : Role.BENUTZER;
         AppUser user = users.save(new AppUser(req.email(), encoder.encode(req.password()), role));
+        audit.log(null, "BENUTZER_ANGELEGT", user.getEmail() + " (" + role + ")");
         return new UserView(user.getId().toString(), user.getEmail(), user.getRole().name());
     }
 
@@ -60,6 +64,7 @@ public class UserController {
             throw new ApiExceptions.Conflict("Der letzte Administrator kann nicht gelöscht werden.");
         }
         users.delete(user);
+        audit.log(null, "BENUTZER_GELOESCHT", user.getEmail());
         return ResponseEntity.noContent().build();
     }
 
