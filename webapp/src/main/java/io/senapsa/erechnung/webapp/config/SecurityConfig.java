@@ -4,7 +4,6 @@ import io.senapsa.erechnung.webapp.security.JwtAuthFilter;
 import io.senapsa.erechnung.webapp.security.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,14 +26,18 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Oeffentlich: Login, Branding, Health, API-Doku, statische UI.
+                        // Oeffentlich: Login, Branding, Health, API-Doku.
                         .requestMatchers("/api/v1/auth/**", "/api/v1/branding").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/assets/**", "/branding/**").permitAll()
-                        // Stammdaten & Administration nur fuer ADMIN.
+                        // Geschuetzte API: Stammdaten/Administration nur ADMIN, restliche API angemeldet.
                         .requestMatchers("/api/v1/stammdaten/**", "/api/v1/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/v1/**").authenticated()
+                        .requestMatchers("/actuator/**").authenticated()
+                        // Statische SPA (HTML/JS/CSS) und Client-Routen sind oeffentlich; die
+                        // Daten dahinter sind ueber die API geschuetzt. So funktionieren
+                        // Deep-Links / Neuladen (F5) auf Unterseiten.
+                        .anyRequest().permitAll())
                 // Fehlende/ungueltige Authentifizierung -> 401 (Frontend beendet die
                 // Sitzung); fehlende Berechtigung bei gueltigem Login -> 403.
                 .exceptionHandling(e -> e.authenticationEntryPoint(

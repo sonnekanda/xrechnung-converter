@@ -61,21 +61,8 @@ export default function OrdnerAutomatik() {
             <div className="val"><input value={s.hostInputDir || s.baseInputDir} readOnly /></div>
           </div>
           <div className="field-row">
-            <label>Eingang – Unterordner</label>
-            <div className="val"><input value={s.watchInputSubdir}
-              onChange={(e) => set("watchInputSubdir", e.target.value)} placeholder="(optional)" /></div>
-          </div>
-          <div className="field-row">
             <label>Ausgangsordner</label>
             <div className="val"><input value={s.hostOutputDir || s.baseOutputDir} readOnly /></div>
-          </div>
-          <div className="field-row">
-            <label>Ausgang – Unterordner</label>
-            <div className="val"><input value={s.watchOutputSubdir}
-              onChange={(e) => set("watchOutputSubdir", e.target.value)} placeholder="(optional)" /></div>
-          </div>
-          <div className="muted">
-            Effektiv: {(s.effectiveHostInput || s.effectiveInputDir)} → {(s.effectiveHostOutput || s.effectiveOutputDir)}
           </div>
 
           <div className="section-title">Verhalten</div>
