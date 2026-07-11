@@ -146,14 +146,14 @@ export default function Dashboard() {
         <div className="month-nav">
           <button className="secondary small icon" title="Voriger Monat" aria-label="Voriger Monat"
                   disabled={alle} onClick={() => shiftMonth(-1)}>‹</button>
-          <button className="secondary small" title="Zum aktuellen Monat springen"
-                  onClick={() => { setAlle(false); setRange(monthRange()); }}>
-            Dieser Monat
-          </button>
+          <span className="month-label muted">{alle ? "Alle Monate" : monthLabel(range.von)}</span>
           <button className="secondary small icon" title="Nächster Monat" aria-label="Nächster Monat"
                   disabled={alle} onClick={() => shiftMonth(1)}>›</button>
-          <span className="muted">{alle ? "Alle Monate" : monthLabel(range.von)}</span>
         </div>
+        <button className="secondary small" title="Zum aktuellen Monat springen"
+                onClick={() => { setAlle(false); setRange(monthRange()); }}>
+          Dieser Monat
+        </button>
         <label className="row" style={{ gap: 6, cursor: "pointer" }}>
           <input type="checkbox" style={{ width: "auto" }} checked={alle}
                  onChange={(e) => setAlle(e.target.checked)} />

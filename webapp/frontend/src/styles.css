@@ -119,6 +119,7 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
 .toolbar input[type="date"] { width: auto; }
 .toolbar .spacer { flex: 1; }
 .month-nav { display: flex; align-items: center; gap: 6px; }
+.month-nav .month-label { min-width: 120px; text-align: center; font-weight: 600; color: var(--ink); }
 button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
 
 .status-pill {
