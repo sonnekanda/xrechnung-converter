@@ -94,6 +94,18 @@ public class InvoiceController {
         return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_XML).body(xml);
     }
 
+    /** ZUGFeRD-Hybrid-PDF (XRechnung eingebettet ins Original-PDF). 409 ohne PDF/vor Prüfung. */
+    @GetMapping("/{id}/zugferd")
+    public ResponseEntity<byte[]> zugferd(@PathVariable UUID id) {
+        Invoice invoice = invoiceService.get(id);
+        byte[] pdf = invoiceService.zugferd(id);
+        String filename = "rechnung-" +
+                (invoice.getRechnungsnummer() != null ? invoice.getRechnungsnummer() : id) + "-zugferd.pdf";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        return ResponseEntity.ok().headers(headers).contentType(MediaType.APPLICATION_PDF).body(pdf);
+    }
+
     @GetMapping("/{id}/validation-report")
     public ResponseEntity<String> validationReport(@PathVariable UUID id) {
         Invoice invoice = invoiceService.get(id);

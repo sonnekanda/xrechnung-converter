@@ -50,7 +50,11 @@ Entwicklungsdokument.
   Ausgangsordner exportiert, unsichere landen im Prüfbildschirm. Verarbeitete
   Eingangsdateien werden nach `.done`/`.error` verschoben; identische
   Wiederablage wird per Inhalts-Hash abgefangen. Default aus (`WATCH_ENABLED`).
-- **ZUGFeRD PDF/A-3** (Kann): nach positivem PoC; Schalter `ZUGFERD_ENABLED`.
+- **ZUGFeRD-Hybrid-PDF**: umgesetzt für Rechnungen mit Original-PDF – die
+  geprüfte XRechnung-CII wird per Mustang (`ZUGFeRDExporterFromA1`, Profil
+  XRechnung) in das vorhandene PDF eingebettet (Best-Effort PDF/A-3). Kein
+  eigener Sicht-PDF-Aufbau; reine CSV-Rechnungen bieten daher kein ZUGFeRD.
+  Download im Prüfbildschirm über „⭳ ZUGFeRD".
 - **Lasttest** (K-09): Skript/Vorgehen dokumentiert, nicht als Dauerlauf Teil
   dieses Stands.
 - **Lizenzcontroller**: Schnittstelle vorgesehen (`LICENSE_*`), Durchsetzung vor

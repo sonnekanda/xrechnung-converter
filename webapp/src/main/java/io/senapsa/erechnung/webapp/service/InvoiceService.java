@@ -291,6 +291,48 @@ public class InvoiceService {
         return xml;
     }
 
+    /**
+     * Erzeugt ein ZUGFeRD-Hybrid-PDF (XRechnung-CII eingebettet in das Original-
+     * PDF). Voraussetzung wie beim Export: geprüft (VALIDIERT/EXPORTIERT). Ohne
+     * Original-PDF (reiner CSV-Fall) nicht möglich. Wie der XML-Download schließt
+     * auch dies den Vorgang ab (VALIDIERT -> EXPORTIERT).
+     */
+    @Transactional
+    public byte[] zugferd(UUID id) {
+        Invoice invoice = get(id);
+        boolean downloadbar = invoice.getStatus() == InvoiceStatus.VALIDIERT
+                || invoice.getStatus() == InvoiceStatus.EXPORTIERT;
+        if (!downloadbar) {
+            throw new ApiExceptions.Conflict(
+                    "Diese Rechnung ist noch nicht geprüft und kann daher nicht als ZUGFeRD erzeugt werden.");
+        }
+        if (invoice.getPdfFilename() == null) {
+            throw new ApiExceptions.Conflict(
+                    "ZUGFeRD benötigt ein Original-PDF. Zu dieser Rechnung liegt nur eine CSV vor.");
+        }
+        Path pdfFile = uploadsDir.resolve(id.toString()).resolve(invoice.getPdfFilename());
+        byte[] sourcePdf;
+        try {
+            sourcePdf = Files.readAllBytes(pdfFile);
+        } catch (IOException e) {
+            throw new ApiExceptions.NotFound("Das Original-PDF wurde nicht gefunden.");
+        }
+        byte[] pdf;
+        try {
+            pdf = generation.generateZugferd(modelJson.parse(invoice.getModelJson()), sourcePdf);
+        } catch (Exception e) {
+            log.error("ZUGFeRD-Erzeugung fuer {} fehlgeschlagen", id, e);
+            throw new ApiExceptions.Conflict(
+                    "Das ZUGFeRD-PDF konnte nicht erzeugt werden (das Original-PDF ließ sich nicht anreichern).");
+        }
+        if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
+            transition(invoice, InvoiceStatus.EXPORTIERT);
+            invoices.save(invoice);
+            audit.log(id, "EXPORTIERT", "ZUGFeRD-PDF heruntergeladen");
+        }
+        return pdf;
+    }
+
     private void transition(Invoice invoice, InvoiceStatus target) {
         if (invoice.getStatus() != target && !invoice.getStatus().canTransitionTo(target)) {
             throw new ApiExceptions.Conflict("Unzulaessiger Statuswechsel.");

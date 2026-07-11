@@ -64,6 +64,22 @@ public class EngineController {
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Erzeugt ein ZUGFeRD-/Factur-X-Hybrid-PDF: bettet die XRechnung-CII in das
+     * mitgelieferte Original-PDF ein. Die Rechnung wurde zuvor bereits im
+     * XRechnung-Pfad amtlich geprüft; die eingebettete CII entspricht diesen Daten.
+     */
+    @PostMapping("/zugferd")
+    public ResponseEntity<ZugferdResponse> zugferd(@RequestBody ZugferdRequest request) throws Exception {
+        JsonNode model = request.model();
+        String number = model.path("kopf").path("rechnungsnummer").path("wert").asText("?");
+        Invoice invoice = mapper.toInvoice(model);
+        byte[] sourcePdf = Base64.getDecoder().decode(request.pdfBase64());
+        byte[] zugferd = generator.generateZugferdPdf(invoice, sourcePdf);
+        log.info("ZUGFeRD-PDF fuer Rechnung {} erzeugt ({} Bytes)", number, zugferd.length);
+        return ResponseEntity.ok(new ZugferdResponse(Base64.getEncoder().encodeToString(zugferd)));
+    }
+
     /** Validiert eine bereits erzeugte XML-Datei (Base64) erneut. */
     @PostMapping("/validate")
     public ResponseEntity<ValidateResponse> validate(@RequestBody ValidateRequest request) {
@@ -88,5 +104,11 @@ public class EngineController {
     }
 
     public record ValidateResponse(boolean valid, boolean kositChecked, String report) {
+    }
+
+    public record ZugferdRequest(JsonNode model, String pdfBase64) {
+    }
+
+    public record ZugferdResponse(String pdfBase64) {
     }
 }

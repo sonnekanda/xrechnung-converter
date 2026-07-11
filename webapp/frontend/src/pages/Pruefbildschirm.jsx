@@ -261,8 +261,12 @@ export default function Pruefbildschirm() {
                 title="XRechnung (UBL-XML) herunterladen">
           ⭳ XRechnung
         </button>
-        <button className="secondary small" disabled
-                title="ZUGFeRD (Hybrid-PDF) – folgt in Kürze">
+        <button className="secondary small"
+                onClick={() => download(api.zugferdPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}-zugferd.pdf`)}
+                disabled={!validiert || !detail.pdfFilename}
+                title={detail.pdfFilename
+                  ? "ZUGFeRD-PDF (XRechnung im Original-PDF eingebettet) herunterladen"
+                  : "ZUGFeRD benötigt ein Original-PDF – zu dieser Rechnung liegt nur eine CSV vor"}>
           ⭳ ZUGFeRD
         </button>
       </div>

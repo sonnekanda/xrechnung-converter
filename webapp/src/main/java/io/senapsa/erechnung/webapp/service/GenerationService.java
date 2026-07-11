@@ -29,8 +29,22 @@ public class GenerationService {
                 .body(EngineResult.class);
     }
 
+    /** Erzeugt ein ZUGFeRD-Hybrid-PDF aus Modell + Original-PDF (Base64 im Transport). */
+    public byte[] generateZugferd(JsonNode model, byte[] sourcePdf) {
+        ZugferdResult res = client.post()
+                .uri("/engine/zugferd")
+                .body(Map.of("model", model,
+                        "pdfBase64", java.util.Base64.getEncoder().encodeToString(sourcePdf)))
+                .retrieve()
+                .body(ZugferdResult.class);
+        return java.util.Base64.getDecoder().decode(res.pdfBase64());
+    }
+
     /** Antwort der invoice-engine. */
     public record EngineResult(String syntax, String xmlBase64, boolean valid,
                                boolean kositChecked, String report) {
+    }
+
+    public record ZugferdResult(String pdfBase64) {
     }
 }

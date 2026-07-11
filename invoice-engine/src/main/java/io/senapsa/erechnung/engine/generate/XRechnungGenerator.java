@@ -4,8 +4,10 @@ import org.mustangproject.CII.CIIToUBL;
 import org.mustangproject.Invoice;
 import org.mustangproject.ZUGFeRD.Profiles;
 import org.mustangproject.ZUGFeRD.ZUGFeRD2PullProvider;
+import org.mustangproject.ZUGFeRD.ZUGFeRDExporterFromA1;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -74,6 +76,31 @@ public class XRechnungGenerator {
         return xml.replaceFirst(
                 "(<cac:" + partyElement + ">\\s*<cac:Party>)",
                 "$1" + java.util.regex.Matcher.quoteReplacement(endpoint));
+    }
+
+    /**
+     * Erzeugt ein ZUGFeRD-/Factur-X-Hybrid-PDF: bettet die (bereits geprüfte)
+     * XRechnung-CII als XML in das vorhandene Original-PDF ein. Es wird KEIN
+     * sichtbares PDF neu erzeugt – nur das vorliegende PDF wird angereichert
+     * (Best-Effort-Konvertierung nach PDF/A-3; Abas-PDFs sind kein PDF/A,
+     * daher {@code ignorePDFAErrors}).
+     *
+     * @param sourcePdf Bytes des Original-PDFs (Pflicht – ohne PDF kein ZUGFeRD)
+     */
+    public byte[] generateZugferdPdf(Invoice invoice, byte[] sourcePdf) throws Exception {
+        byte[] cii = generateCii(invoice);
+        ZUGFeRDExporterFromA1 exporter = new ZUGFeRDExporterFromA1();
+        // ignorePDFAErrors() MUSS vor load() gesetzt sein: load() prüft sonst die
+        // PDF/A-1-Konformität und bricht ab. Abas-PDFs sind kein PDF/A -> Best-Effort.
+        exporter.setProducer("senapsa eRechnung");
+        exporter.setCreator("senapsa eRechnung");
+        exporter.ignorePDFAErrors();
+        exporter.load(sourcePdf);
+        exporter.setProfile(Profiles.getByName("XRechnung"));
+        exporter.setXML(cii);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        exporter.export(out);
+        return out.toByteArray();
     }
 
     public String asString(byte[] xml) {

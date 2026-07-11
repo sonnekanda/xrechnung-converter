@@ -94,5 +94,6 @@ export const api = {
   },
   pdfPath: (id) => `/api/v1/invoices/${id}/pdf`,
   exportPath: (id) => `/api/v1/invoices/${id}/export`,
+  zugferdPath: (id) => `/api/v1/invoices/${id}/zugferd`,
   reportPath: (id) => `/api/v1/invoices/${id}/validation-report`,
 };

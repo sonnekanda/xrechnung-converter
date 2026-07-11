@@ -9,7 +9,7 @@ zum Verifikationsvorgehen in [`status.md`](status.md).
 | **K-02** | Alle Positionen erkannt, im Prüfbildschirm korrigierbar; unsichere Felder erfordern Bestätigung | ✅ | Positions-Erkennung PDF/CSV; Prüfbildschirm mit editierbaren Feldern (auch Positionen); gelbe Felder per ✓ bestätigbar. |
 | **K-03** | Empfänger-Stammdaten gepflegt + automatisch eingefüllt | ✅ | Stammdaten-Verwaltung + Autofill (USt-IdNr/Kundennummer); „Empfänger speichern" im Prüfbildschirm. Verifiziert: Leitweg-ID/Adresse/E-Mail automatisch ergänzt. |
 | **K-04** | Exportsperre bei fehlenden Pflichtfeldern / unklaren Positionen / falschen Summen | ✅ | Fachprüfung (Pflichtfelder, Summen, Netto×Satz=Steuer, Einzelpreis×Menge=Gesamtpreis, IBAN-Prüfsumme) + Statusmaschine; Export nur bei Status `validiert`, sonst HTTP 409. |
-| **K-05** | Gültige XRechnung-XML (UBL) erzeugt + validiert; ZUGFeRD gemäß PoC | ✅ (UBL) | 400009 von Mustang **und** KoSIT (XRechnung 3.0.2) als gültig akzeptiert. ZUGFeRD = „Kann", nach PoC (offen). |
+| **K-05** | Gültige XRechnung-XML (UBL) erzeugt + validiert; ZUGFeRD gemäß PoC | ✅ | 400009 von Mustang **und** KoSIT (XRechnung 3.0.2) als gültig akzeptiert. ZUGFeRD-Hybrid-PDF: die geprüfte XRechnung-CII wird in das Original-PDF eingebettet (`ZUGFeRDExporterFromA1`, Profil XRechnung); nur für Rechnungen mit Original-PDF (kein eigener Sicht-PDF-Aufbau). End-to-end verifiziert (eingebettete `xrechnung.xml`, AFRelationship, PDF/A-Metadaten). |
 | **K-06** | Ungültige Dateien nie exportiert; Erfolg = XML + Validierungsbericht; Fehler feldbezogen | ✅ | Export nur bei doppelter Gültigkeit; XML + Bericht herunterladbar (UI/Ordner-Automatik); feldbezogene Meldungen mit Hervorhebung + Tooltip. |
 | **K-07** | Nur senapsa-UI sichtbar (White-Label); Bedienung ohne Schulung | ✅ | Branding über `.env` (`BRAND_*`); keine OSS-Namen in der UI; Alltagssprache; Benutzerhandbuch. Motoren im internen Netz gekapselt. |
 | **K-08** | `docker compose up` startet Stack aus `.env`; non-root; nur App-Port exponiert | ✅ | `docker-compose.yml` mit `sic-net`, Healthchecks, `depends_on: service_healthy`; alle Dienste non-root (`entrypoint.sh` + `gosu`); nur `WEBAPP_PORT` exponiert; kommentierte `.example.env`. |
@@ -31,5 +31,7 @@ zum Verifikationsvorgehen in [`status.md`](status.md).
   Admin-Handbuch, Mapping, Betrieb) ✅
 - Ordner-Automatik funktionsfähig (K-11) ✅
 
-**Offen / bewusst als „Kann"/„Später":** ZUGFeRD PDF/A-3 (nach PoC),
-Lizenzcontroller-Durchsetzung, CII/Peppol, Gutschriften/Stornos, Multi-Tenancy.
+**Offen / bewusst als „Kann"/„Später":** Lizenzcontroller-Durchsetzung,
+CII/Peppol, Gutschriften/Stornos, Multi-Tenancy. (ZUGFeRD ist für Rechnungen
+mit Original-PDF umgesetzt; ein eigener Sicht-PDF-Aufbau für reine CSV-Fälle
+bleibt bewusst außen vor.)

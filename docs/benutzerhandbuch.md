@@ -43,14 +43,20 @@ Nützlich: Mit **Empfänger in Stammdaten speichern** übernehmen Sie den Käufe
 einmalig in die Stammdaten – künftige Rechnungen desselben Kunden werden dann
 automatisch ergänzt.
 
-## 3. XRechnung erzeugen & herunterladen
+## 3. Prüfen & herunterladen
 
-Sind alle Pflichtfelder grün, klicken Sie auf **XRechnung erzeugen**. Die Datei
-wird erzeugt und amtlich geprüft. Nur wenn die Prüfung besteht, wird sie
-freigegeben – so kann keine ungültige Rechnung exportiert werden.
+Die Aktionen stehen in der oben angehefteten Leiste; die Tasten sind je nach
+Stand aktiv. Sind alle Pflichtfelder grün, klicken Sie auf **Prüfen**: Die
+XRechnung wird erzeugt und amtlich geprüft. Nur wenn die Prüfung besteht, wird
+sie freigegeben – so kann keine ungültige Rechnung exportiert werden.
 
-Danach können Sie **XRechnung herunterladen** (die XML-Datei) und den
-**Validierungsbericht** herunterladen – auch später jederzeit aus der Übersicht.
+Danach können Sie herunterladen:
+
+- **⭳ XRechnung** – die XML-Datei (UBL) für die Einreichung.
+- **⭳ ZUGFeRD** – ein Hybrid-PDF: Ihr Original-PDF mit der eingebetteten
+  XRechnung. Nur verfügbar, wenn zur Rechnung ein Original-PDF vorliegt (bei
+  reinen CSV-Rechnungen bleibt die Taste inaktiv).
+- **Bericht** – der Validierungsbericht (menschenlesbar, mit XML-Download).
 
 Möchten Sie eine bereits erzeugte Rechnung noch ändern, klicken Sie auf
 **Daten ändern**; die erzeugte XML wird verworfen und nach der Korrektur neu
@@ -68,4 +74,4 @@ lassen sich hier auch löschen.
 - **„… ist unsicher – bitte bestätigen"** – Wert prüfen und mit ✓ bestätigen.
 - **„Netto + Steuer ergeben nicht den Bruttobetrag"** – Beträge stimmen rechnerisch
   nicht zusammen. Werte prüfen (der erwartete Wert steht im Hinweis).
-- **„Diese Rechnung ist noch nicht validiert…"** – zuerst „XRechnung erzeugen".
+- **„Diese Rechnung ist noch nicht validiert…"** – zuerst „Prüfen".
