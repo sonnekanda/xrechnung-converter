@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
+import ReportModal from "../components/ReportModal";
 
 const KOPF_LABELS = {
   rechnungsnummer: "Rechnungsnummer",
@@ -86,6 +87,7 @@ export default function Pruefbildschirm() {
   const [genMsg, setGenMsg] = useState(null);
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [zeigeBericht, setZeigeBericht] = useState(false);
 
   const load = useCallback(() => api.invoice(id).then(setDetail).catch((e) => setError(e.message)), [id]);
 
@@ -320,7 +322,7 @@ export default function Pruefbildschirm() {
             <div className="row">
               {validiert && (
                 <>
-                  <button className="secondary" onClick={() => download(api.reportPath(id), `bericht-${id}.xml`)}>
+                  <button className="secondary" onClick={() => setZeigeBericht(true)}>
                     Validierungsbericht
                   </button>
                   <button onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
@@ -337,6 +339,13 @@ export default function Pruefbildschirm() {
           </div>
         </div>
       </div>
+
+      {zeigeBericht && (
+        <ReportModal
+          invoice={{ id, rechnungsnummer: kopf.rechnungsnummer?.wert }}
+          onClose={() => setZeigeBericht(false)}
+        />
+      )}
     </div>
   );
 }

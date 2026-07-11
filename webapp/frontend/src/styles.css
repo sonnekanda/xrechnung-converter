@@ -118,6 +118,8 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
 .toolbar label { color: var(--muted); font-size: 12px; }
 .toolbar input[type="date"] { width: auto; }
 .toolbar .spacer { flex: 1; }
+.month-nav { display: flex; align-items: center; gap: 6px; }
+button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
 
 .status-pill {
   font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;

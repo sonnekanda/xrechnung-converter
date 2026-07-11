@@ -12,14 +12,29 @@ const STATUS_LABEL = {
 };
 const STATUS_RANK = { HOCHGELADEN: 0, IN_VERARBEITUNG: 1, PRUEFEN: 2, VALIDIERT: 3, EXPORTIERT: 4 };
 
-function monthRange() {
-  // Lokale Datumsgrenzen ohne UTC-Verschiebung bilden.
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
+const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni",
+  "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+// Lokale Monatsgrenzen (YYYY-MM-01 … Monatsletzter) ohne UTC-Verschiebung.
+// new Date(y, m, 1) normalisiert Überläufe (m=-1 → Dez Vorjahr, m=12 → Jan Folgejahr).
+function monthRangeOf(y, m) {
+  const d = new Date(y, m, 1);
+  const yy = d.getFullYear();
+  const mm = d.getMonth();
   const pad = (n) => String(n).padStart(2, "0");
-  const lastDay = new Date(y, m + 1, 0).getDate();
-  return { von: `${y}-${pad(m + 1)}-01`, bis: `${y}-${pad(m + 1)}-${pad(lastDay)}` };
+  const lastDay = new Date(yy, mm + 1, 0).getDate();
+  return { von: `${yy}-${pad(mm + 1)}-01`, bis: `${yy}-${pad(mm + 1)}-${pad(lastDay)}` };
+}
+
+function monthRange() {
+  const now = new Date();
+  return monthRangeOf(now.getFullYear(), now.getMonth());
+}
+
+// Beschriftung des aktuell gewählten Monats aus dem Von-Datum ableiten.
+function monthLabel(vonIso) {
+  const [y, m] = vonIso.split("-").map(Number);
+  return `${MONATE[m - 1]} ${y}`;
 }
 
 function deDatum(iso) {
@@ -47,6 +62,13 @@ export default function Dashboard() {
     const t = setInterval(load, 3000); // Status/Ampel aktuell halten
     return () => { alive = false; clearInterval(t); };
   }, [range, alle]);
+
+  // Um einen Monat vor-/zurückblättern, ausgehend vom Von-Datum.
+  function shiftMonth(delta) {
+    setAlle(false);
+    const [y, m] = range.von.split("-").map(Number);
+    setRange(monthRangeOf(y, m - 1 + delta));
+  }
 
   function toggleSort(key) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }));
@@ -121,9 +143,17 @@ export default function Dashboard() {
           <input type="date" value={range.bis} disabled={alle}
                  onChange={(e) => setRange({ ...range, bis: e.target.value })} />
         </div>
-        <button className="secondary small" onClick={() => { setAlle(false); setRange(monthRange()); }}>
-          Dieser Monat
-        </button>
+        <div className="month-nav">
+          <button className="secondary small icon" title="Voriger Monat" aria-label="Voriger Monat"
+                  disabled={alle} onClick={() => shiftMonth(-1)}>‹</button>
+          <button className="secondary small" title="Zum aktuellen Monat springen"
+                  onClick={() => { setAlle(false); setRange(monthRange()); }}>
+            Dieser Monat
+          </button>
+          <button className="secondary small icon" title="Nächster Monat" aria-label="Nächster Monat"
+                  disabled={alle} onClick={() => shiftMonth(1)}>›</button>
+          <span className="muted">{alle ? "Alle Monate" : monthLabel(range.von)}</span>
+        </div>
         <label className="row" style={{ gap: 6, cursor: "pointer" }}>
           <input type="checkbox" style={{ width: "auto" }} checked={alle}
                  onChange={(e) => setAlle(e.target.checked)} />
