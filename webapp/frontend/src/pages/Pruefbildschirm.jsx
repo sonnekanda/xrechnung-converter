@@ -100,6 +100,14 @@ export default function Pruefbildschirm() {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [zeigeBericht, setZeigeBericht] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Erfolgs-Toast oben automatisch nach 3 s schließen.
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const load = useCallback(() => api.invoice(id).then(setDetail).catch((e) => setError(e.message)), [id]);
 
@@ -133,7 +141,7 @@ export default function Pruefbildschirm() {
     try {
       const res = await api.generate(id);
       await load();
-      if (res.valid) setGenMsg({ ok: true, text: "XRechnung wurde erzeugt und amtlich validiert." });
+      if (res.valid) setToast("✓ XRechnung geprüft und amtlich validiert.");
       else setGenMsg({ ok: false, issues: res.issues });
     } catch (e) {
       setError(e.message);
@@ -221,15 +229,42 @@ export default function Pruefbildschirm() {
   // Fachprüfungs-Meldungen den Feldern zuordnen (für Hervorhebung + Tooltip).
   const issueByFeld = {};
   (detail.issues || []).forEach((i) => { issueByFeld[i.feld] = i.meldung; });
+  const ladeXml = () => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`);
 
   return (
     <div>
-      <div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Prüfen: Rechnung {kopf.rechnungsnummer?.wert || detail.id.slice(0, 8)}</h2>
-        <div className="row">
-          <button className="ghost" onClick={remove}>🗑 Löschen</button>
-          <Link to="/"><button className="ghost">Zurück zur Übersicht</button></Link>
+      {toast && (
+        <div className="toast" role="status">
+          <span>{toast}</span>
+          <button className="ghost icon" onClick={() => setToast(null)} aria-label="Schließen">✕</button>
         </div>
+      )}
+
+      {/* Feste Aktionsleiste: bleibt beim Scrollen oben; Tasten je nach Status aktiv. */}
+      <div className="action-bar">
+        <Link to="/" className="icon-back" title="Zurück zur Übersicht" aria-label="Zurück zur Übersicht">←</Link>
+        <h2 className="action-title">Prüfen: Rechnung {kopf.rechnungsnummer?.wert || detail.id.slice(0, 8)}</h2>
+        <div className="spacer" />
+        <button className="small" onClick={generate} disabled={validiert || busy}
+                title="Amtlich prüfen (Mustangproject + KoSIT)">
+          {busy ? "Prüft…" : "Prüfen"}
+        </button>
+        <button className="secondary small" onClick={reopen} disabled={detail.status !== "VALIDIERT"}
+                title="Zurück zur Bearbeitung – die erzeugte XRechnung wird verworfen">
+          Daten ändern
+        </button>
+        <button className="secondary small" onClick={() => setZeigeBericht(true)} disabled={!validiert}
+                title="Validierungsbericht anzeigen">
+          Bericht
+        </button>
+        <button className="small" onClick={ladeXml} disabled={!validiert}
+                title="XRechnung (UBL-XML) herunterladen">
+          ⭳ XRechnung
+        </button>
+        <button className="secondary small" disabled
+                title="ZUGFeRD (Hybrid-PDF) – folgt in Kürze">
+          ⭳ ZUGFeRD
+        </button>
       </div>
 
       {detail.needsOcr && (
@@ -255,26 +290,11 @@ export default function Pruefbildschirm() {
           <button className="ghost" onClick={() => setInfo(null)}>Schließen</button>
         </div>
       )}
-      {detail.status === "VALIDIERT" && (
-        <div className="banner ok row" style={{ justifyContent: "space-between" }}>
-          <span>✓ XRechnung geprüft und amtlich validiert – bereit zum Herunterladen.
-            Mit dem Herunterladen wird die Rechnung schreibgeschützt; zum Ändern
-            vorher „Daten ändern“ wählen (die erzeugte XRechnung wird dann verworfen).</span>
-          <div className="row">
-            <button onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
-              XRechnung herunterladen
-            </button>
-            <button className="secondary" onClick={reopen}>Daten ändern</button>
-          </div>
-        </div>
-      )}
-      {detail.status === "EXPORTIERT" && (
-        <div className="banner ok row" style={{ justifyContent: "space-between" }}>
-          <span>Diese Rechnung wurde exportiert und ist schreibgeschützt.</span>
-          <button className="secondary"
-                  onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
-            Erneut herunterladen
-          </button>
+      {validiert && (
+        <div className="banner ok">
+          {detail.status === "EXPORTIERT"
+            ? "Diese Rechnung wurde exportiert und ist schreibgeschützt."
+            : "XRechnung amtlich validiert – die Felder sind schreibgeschützt. Zum Ändern oben „Daten ändern“ wählen (die erzeugte XRechnung wird dann verworfen)."}
         </div>
       )}
       {genMsg && !genMsg.ok && (
@@ -342,18 +362,7 @@ export default function Pruefbildschirm() {
             <span className={detail.exportReady ? "muted" : "hinweis"} style={{ margin: 0 }}>
               {detail.exportReady ? "Alle Pflichtfelder sind grün." : `${detail.issues.length} Punkt(e) offen`}
             </span>
-            <div className="row">
-              {validiert && (
-                <button className="secondary" onClick={() => setZeigeBericht(true)}>
-                  Validierungsbericht
-                </button>
-              )}
-              {!validiert && (
-                <button onClick={generate} disabled={busy}>
-                  {busy ? "Wird geprüft…" : "XRechnung prüfen"}
-                </button>
-              )}
-            </div>
+            <button className="danger" onClick={remove}>🗑 Rechnung löschen</button>
           </div>
         </div>
       </div>
