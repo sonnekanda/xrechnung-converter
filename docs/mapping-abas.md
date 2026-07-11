@@ -59,7 +59,10 @@ Positionen gezählt.
 > **Grenze des CSV-Pfads:** Der Export enthält je Position **keine** Menge,
 > Einheit, Einzelpreis oder Beschreibung. Diese Felder werden im CSV-Pfad als
 > `fehlt` (rot) markiert und aus dem PDF bzw. manuell ergänzt. Genau dafür ist
-> die PDF↔CSV-Kombination gedacht (PDF führt).
+> die PDF↔CSV-Kombination gedacht: **liegt eine CSV vor, ist sie maßgeblich**
+> (strukturierte Daten), die PDF-Textebene füllt nur die Lücken und dient der
+> Gegenprüfung. OCR entfällt bei vorhandener CSV komplett – so entstehen keine
+> Erkennungsfehler (z. B. `DEO0001` statt `DE00001`).
 
 ## 2. PDF-Struktur
 
@@ -83,9 +86,10 @@ Fälligkeit 09.07.2026
 Erkannt werden Rechnungsnummer, Datum, Fälligkeit, USt-IdNr, Käufer-Adressblock,
 Positionen (Menge/Einheit/Einzel-/Gesamtpreis/Steuersatz) und Summen.
 
-Fehlt die Textebene (Scan, z.B. **400014**), erkennt der `extraction-worker`
-`needs_ocr` und übergibt an den `ocr-worker`. OCR-Ergebnisse sind grundsätzlich
-`unsicher` (gelb) und prüfpflichtig.
+Fehlt die Textebene (Scan, z.B. **400014**) **und liegt keine CSV vor**, erkennt
+der `extraction-worker` `needs_ocr` und übergibt an den `ocr-worker`. OCR-Ergebnisse
+sind grundsätzlich `unsicher` (gelb) und prüfpflichtig. Liegt hingegen eine CSV
+vor, wird OCR übersprungen und die CSV verwendet.
 
 ## 3. Feldabgleich Abas ↔ XRechnung (Auszug)
 

@@ -15,8 +15,11 @@ Ihrem Passwort an. Ihre Zugangsdaten erhalten Sie von Ihrem Administrator.
 2. Ziehen Sie eine oder mehrere Dateien in die Fläche oder klicken Sie zum
    Auswählen. Erlaubt sind **PDF** und **CSV**.
 3. Gehören PDF und CSV zusammen, benennen Sie sie gleich (z. B. `400009.pdf` und
-   `400009.csv`) – sie werden automatisch zu einer Rechnung zusammengefasst. Das
-   PDF ist maßgeblich, die CSV dient der Gegenprüfung.
+   `400009.csv`) – sie werden automatisch zu einer Rechnung zusammengefasst. Liegt
+   eine CSV vor, ist sie maßgeblich (strukturierte Abas-Daten); das PDF füllt nur
+   die Lücken der CSV (z. B. Menge, Einzelpreis, Beschreibung, Datum) und dient der
+   Gegenprüfung. Eine Texterkennung (OCR) entfällt dann – die verlässlichen Daten
+   stehen bereits in der CSV.
 4. Klicken Sie auf **Hochladen & prüfen**.
 
 Sie können auch mehrere Rechnungen auf einmal hochladen; für jede entsteht ein

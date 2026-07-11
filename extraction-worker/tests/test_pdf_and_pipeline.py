@@ -39,30 +39,44 @@ def test_scan_ohne_textebene_braucht_ocr():
     assert r.model is None
 
 
-def test_pipeline_pdf_fuehrt_csv_gegenpruefung_keine_abweichung():
+def test_pipeline_csv_massgeblich_pdf_fuellt_luecken():
     r = run_extraction(pdf_path=TEXT_PDF, csv_path=CSV / "400009.csv")
     m = r.model.to_dict()
     # PDF und CSV stimmen ueberein -> keine gelben Abweichungen.
     assert m["abweichungen"] == []
+    assert r.needs_ocr is False
+    # CSV ist massgeblich: strukturierte Felder stammen aus der CSV ...
+    assert m["kopf"]["rechnungsnummer"]["herkunft"] == "csv"
+    assert m["positionen"][0]["gesamtpreis"]["herkunft"] == "csv"
+    # ... waehrend Luecken der CSV aus der PDF-Textebene gefuellt werden.
+    assert m["kopf"]["rechnungsdatum"]["herkunft"] == "pdf"
+    assert m["kopf"]["rechnungsdatum"]["wert"] == "2026-07-02"
     assert m["positionen"][0]["menge"]["herkunft"] == "pdf"
+    assert m["positionen"][0]["menge"]["wert"] == "1000.00"
 
 
-def test_crosscheck_meldet_abweichung():
-    # Kuenstliche Divergenz: Bruttobetrag im PDF-Text manipuliert.
-    good = extract_pdf(TEXT_PDF).model
+def test_crosscheck_markiert_csv_feld_bei_abweichung():
+    # Kuenstliche Divergenz: Bruttobetrag im PDF-Text manipuliert; die CSV
+    # bleibt massgeblich, das (abweichende) CSV-Feld wird gelb markiert.
     from app.csv_path import parse_csv_file
-    csv_model = parse_csv_file(CSV / "400009.csv")
-    good.summen["bruttobetrag"]["wert"] = "999999.00"
     from app.pipeline import crosscheck
-    crosscheck(good, csv_model)
-    assert good.summen["bruttobetrag"]["status"] == "unsicher"
-    assert any(a["feld"] == "bruttobetrag" for a in good.abweichungen)
+    pdf_model = extract_pdf(TEXT_PDF).model
+    csv_model = parse_csv_file(CSV / "400009.csv")
+    pdf_model.summen["bruttobetrag"]["wert"] = "999999.00"
+    crosscheck(csv_model, pdf_model)
+    assert csv_model.summen["bruttobetrag"]["status"] == "unsicher"
+    assert any(a["feld"] == "bruttobetrag" for a in csv_model.abweichungen)
 
 
-def test_scan_mit_csv_nutzt_csv_und_meldet_ocr():
+def test_scan_mit_csv_ueberspringt_ocr(monkeypatch):
+    # Liegt eine CSV vor, darf OCR gar nicht erst aufgerufen werden.
+    import app.pipeline as pipeline
+    monkeypatch.setattr(pipeline, "run_ocr",
+                        lambda *a, **k: pytest.fail("OCR darf bei vorhandener CSV nicht laufen"))
     r = run_extraction(pdf_path=SCAN_PDF, csv_path=CSV / "400014.csv")
-    assert r.needs_ocr is True
+    assert r.needs_ocr is False
     assert r.model is not None
+    assert r.model.quelle.get("ocr_verwendet") is False
     assert len(r.model.positionen) == 2
 
 

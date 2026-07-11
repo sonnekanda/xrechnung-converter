@@ -1,10 +1,16 @@
 """Orchestrierung des Extraktions-Datenpfads.
 
 Regeln (Kern-Arbeitsannahmen):
-  * PDF vorhanden  -> PDF fuehrt.
-  * PDF + CSV      -> PDF fuehrt, CSV dient der Gegenpruefung (Abweichung = gelb).
-  * nur CSV        -> vollstaendig aus CSV.
-  * PDF ohne Textebene -> needs_ocr (ocr-worker uebernimmt, Ergebnis prueffpflichtig).
+  * CSV vorhanden -> CSV ist massgeblich (strukturierte Abas-Daten). Eine
+                     vorhandene PDF-Textebene fuellt nur die Luecken der CSV
+                     (Menge/Einzelpreis/Beschreibung je Position, Rechnungs-
+                     datum, Adresse) und dient der Gegenpruefung
+                     (Abweichung = gelb). OCR entfaellt in diesem Fall komplett:
+                     liegen strukturierte Daten vor, braucht es keine fehler-
+                     anfaellige Bilderkennung (die z.B. "DEO0001" statt
+                     "DE00001" liefern kann).
+  * nur PDF mit Textebene  -> PDF fuehrt.
+  * nur PDF ohne Textebene -> needs_ocr (ocr-worker, Ergebnis prueffpflichtig).
 
 Gutschriften/Stornos werden erkannt und als nicht exportierbar markiert
 (Scope "Spaeter").
@@ -46,79 +52,122 @@ def _values_differ(a, b) -> bool:
     return (str(a).strip() if a is not None else None) != (str(b).strip() if b is not None else None)
 
 
-def crosscheck(lead: InvoiceModel, other: InvoiceModel) -> None:
-    """Vergleicht ``other`` (CSV) gegen ``lead`` (PDF); Abweichungen -> gelb + Liste."""
-    def compare(block_lead: dict, block_other: dict, feld_name: str, pos_index=None):
-        f_lead = block_lead.get(feld_name)
-        f_other = block_other.get(feld_name)
-        if not f_lead or not f_other:
+# Felder, die die CSV aus dem Abas-Export nicht liefert, aber eine PDF-
+# Textebene enthaelt -> zum Auffuellen der CSV-Luecken (keine Gegenpruefung).
+_MERGE_KOPF = ["rechnungsdatum", "faelligkeit", "leistungszeitraum",
+               "kaeufer_strasse", "kaeufer_plz", "kaeufer_ort", "kaeufer_ustid"]
+_MERGE_POS = ["beschreibung", "menge", "einheit", "einzelpreis", "steuersatz"]
+
+
+def _is_empty(f: dict | None) -> bool:
+    """Feld gilt als leer/zu ergaenzen, wenn ohne Wert oder als 'fehlt' markiert."""
+    return (not f) or f.get("wert") in (None, "") or f.get("status") == Status.FEHLT.value
+
+
+def crosscheck(csv_model: InvoiceModel, pdf_model: InvoiceModel) -> None:
+    """Gegenpruefung gemeinsamer Felder von CSV und PDF. Da die CSV massgeblich
+    ist, wird bei Abweichung das CSV-Feld gelb markiert (der Nutzer entscheidet).
+    Faengt u.a. falsch gepaarte PDF/CSV-Dateien ab."""
+    def compare(csv_block: dict, pdf_block: dict, feld_name: str, pos_index=None):
+        fc = csv_block.get(feld_name)
+        fp = pdf_block.get(feld_name)
+        if not fc or not fp:
             return
-        if f_lead.get("wert") is None or f_other.get("wert") is None:
+        if fc.get("wert") is None or fp.get("wert") is None:
             return
-        if _values_differ(f_lead["wert"], f_other["wert"]):
-            f_lead["status"] = Status.UNSICHER.value
-            f_lead["hinweis"] = (
-                f"PDF und CSV weichen ab (PDF: {f_lead['wert']}, CSV: {f_other['wert']}) - "
+        if _values_differ(fc["wert"], fp["wert"]):
+            fc["status"] = Status.UNSICHER.value
+            fc["hinweis"] = (
+                f"PDF und CSV weichen ab (CSV: {fc['wert']}, PDF: {fp['wert']}) - "
                 "bitte pruefen, welcher Wert stimmt."
             )
-            lead.abweichungen.append({
-                "feld": feld_name, "pdf_wert": f_lead["wert"],
-                "csv_wert": f_other["wert"], "position_index": pos_index,
+            csv_model.abweichungen.append({
+                "feld": feld_name, "pdf_wert": fp["wert"],
+                "csv_wert": fc["wert"], "position_index": pos_index,
             })
 
     for name in _CROSSCHECK_KOPF:
-        compare(lead.kopf, other.kopf, name)
+        compare(csv_model.kopf, pdf_model.kopf, name)
     for name in _CROSSCHECK_SUMMEN:
-        compare(lead.summen, other.summen, name)
+        compare(csv_model.summen, pdf_model.summen, name)
 
     # Positionen anhand Artikelnummer abgleichen (Gesamtpreis).
-    other_by_art = {p["artikelnummer"]["wert"]: p for p in other.positionen}
-    for i, p in enumerate(lead.positionen):
+    pdf_by_art = {p["artikelnummer"]["wert"]: p for p in pdf_model.positionen
+                  if p.get("artikelnummer", {}).get("wert")}
+    for i, p in enumerate(csv_model.positionen):
         art = p.get("artikelnummer", {}).get("wert")
-        if art in other_by_art:
-            compare(p, other_by_art[art], "gesamtpreis", pos_index=i)
+        if art in pdf_by_art:
+            compare(p, pdf_by_art[art], "gesamtpreis", pos_index=i)
+
+
+def merge_fill(base: InvoiceModel, extra: InvoiceModel) -> None:
+    """Fuellt leere/fehlende Felder in ``base`` (CSV) aus ``extra`` (PDF-Text-
+    ebene). Vorhandene, gesicherte CSV-Werte bleiben unangetastet - die CSV
+    bleibt massgeblich, das PDF liefert nur, was die CSV nicht enthaelt."""
+    for name in _MERGE_KOPF:
+        if _is_empty(base.kopf.get(name)) and not _is_empty(extra.kopf.get(name)):
+            base.kopf[name] = dict(extra.kopf[name])
+
+    # Dokument-Steuersatz: aus CSV nur abgeleitet (unsicher) - der explizit im
+    # PDF ausgewiesene Satz ist verlaesslicher.
+    csv_satz = base.summen.get("steuersatz")
+    if (_is_empty(csv_satz) or (csv_satz and csv_satz.get("status") == Status.UNSICHER.value)) \
+            and not _is_empty(extra.summen.get("steuersatz")):
+        base.summen["steuersatz"] = dict(extra.summen["steuersatz"])
+
+    # Positionen nach Artikelnummer zusammenfuehren.
+    extra_by_art = {p["artikelnummer"]["wert"]: p for p in extra.positionen
+                    if p.get("artikelnummer", {}).get("wert")}
+    for pos in base.positionen:
+        src = extra_by_art.get(pos.get("artikelnummer", {}).get("wert"))
+        if not src:
+            continue
+        for name in _MERGE_POS:
+            if _is_empty(pos.get(name)) and not _is_empty(src.get(name)):
+                pos[name] = dict(src[name])
 
 
 def run_extraction(pdf_path: str | Path | None = None,
                    csv_path: str | Path | None = None) -> ExtractionOutcome:
     """Fuehrt beide Datenpfade zusammen und liefert ein internes Modell."""
-    pdf_res: PdfResult | None = None
-    if pdf_path:
-        pdf_res = extract_pdf(pdf_path)
-        if pdf_res.needs_ocr:
-            # Textebene fehlt -> OCR (falls verfuegbar); Ergebnisse sind unsicher.
-            ocr_model = run_ocr(pdf_path) if ocr_available() else None
-            if ocr_model is not None:
-                if csv_path:
-                    crosscheck(ocr_model, parse_csv_bytes(Path(csv_path).read_bytes(), Path(csv_path).name))
-                _flag_gutschrift(ocr_model)
-                return ExtractionOutcome(model=ocr_model, needs_ocr=True, raw_text=pdf_res.raw_text)
-            # OCR nicht verfuegbar: CSV (falls vorhanden) dient als Grundlage.
-            if csv_path:
-                model = parse_csv_bytes(Path(csv_path).read_bytes(), Path(csv_path).name)
-                _flag_gutschrift(model)
-                return ExtractionOutcome(model=model, needs_ocr=True, raw_text=pdf_res.raw_text)
-            # OCR nicht moeglich und keine CSV: leeres Geruest -> manuell erfassbar,
-            # damit der Pruefbildschirm immer erreichbar ist (kein Haengenbleiben).
-            return ExtractionOutcome(model=_empty_skeleton(Path(pdf_path).name, needs_ocr=True),
-                                     needs_ocr=True, raw_text=pdf_res.raw_text)
-
     csv_model: InvoiceModel | None = None
     if csv_path:
         csv_model = parse_csv_bytes(Path(csv_path).read_bytes(), Path(csv_path).name)
 
-    if pdf_res and pdf_res.model:
-        lead = pdf_res.model
-        lead.quelle["csv_datei"] = Path(csv_path).name if csv_path else None
-        if csv_model:
-            crosscheck(lead, csv_model)  # PDF fuehrt, CSV = Gegenpruefung
-        _flag_gutschrift(lead)
-        return ExtractionOutcome(model=lead, raw_text=pdf_res.raw_text if pdf_res else "")
+    # PDF-Textebene lesen, sofern vorhanden. Wichtig: liegt eine CSV vor, wird
+    # NICHT ge-OCR-t - die CSV liefert die verlaesslichen Daten.
+    pdf_res: PdfResult | None = extract_pdf(pdf_path) if pdf_path else None
 
-    if csv_model:
+    # --- Fall 1: CSV vorhanden -> CSV ist massgeblich, OCR entfaellt. ---------
+    if csv_model is not None:
+        csv_model.quelle["pdf_datei"] = Path(pdf_path).name if pdf_path else None
+        csv_model.quelle["ocr_verwendet"] = False
+        if pdf_res and pdf_res.model:
+            # Textebene vorhanden: gemeinsame Felder gegenpruefen (Abweichung
+            # = gelb), danach CSV-Luecken aus dem PDF auffuellen.
+            crosscheck(csv_model, pdf_res.model)
+            merge_fill(csv_model, pdf_res.model)
         _flag_gutschrift(csv_model)
-        return ExtractionOutcome(model=csv_model)
+        return ExtractionOutcome(model=csv_model, needs_ocr=False,
+                                 raw_text=pdf_res.raw_text if pdf_res else "")
 
+    # --- Fall 2: nur PDF -----------------------------------------------------
+    if pdf_res:
+        if pdf_res.needs_ocr:
+            # Keine Textebene und keine CSV -> OCR (falls verfuegbar), prueffpflichtig.
+            ocr_model = run_ocr(pdf_path) if ocr_available() else None
+            if ocr_model is not None:
+                _flag_gutschrift(ocr_model)
+                return ExtractionOutcome(model=ocr_model, needs_ocr=True, raw_text=pdf_res.raw_text)
+            # OCR nicht moeglich: leeres Geruest -> manuell erfassbar, damit der
+            # Pruefbildschirm immer erreichbar ist (kein Haengenbleiben).
+            return ExtractionOutcome(model=_empty_skeleton(Path(pdf_path).name, needs_ocr=True),
+                                     needs_ocr=True, raw_text=pdf_res.raw_text)
+        lead = pdf_res.model
+        _flag_gutschrift(lead)
+        return ExtractionOutcome(model=lead, raw_text=pdf_res.raw_text)
+
+    # --- Fall 3: weder CSV noch PDF ------------------------------------------
     return ExtractionOutcome(model=_empty_skeleton(None, needs_ocr=False))
 
 
