@@ -31,6 +31,18 @@ function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
 
+// PDF/CSV-Abweichungen, deren Feld aktuell noch unsicher (gelb) ist. Sobald der
+// Nutzer ein solches Feld bestätigt oder korrigiert (Status -> sicher), zählt es
+// nicht mehr, sodass der Warnhinweis mit dem tatsächlichen Zustand übereinstimmt.
+function offeneAbweichungen(model) {
+  return (model.abweichungen || []).filter((a) => {
+    const field = a.position_index != null
+      ? model.positionen?.[a.position_index]?.[a.feld]
+      : (model.kopf?.[a.feld] ?? model.summen?.[a.feld]);
+    return field?.status === "unsicher";
+  });
+}
+
 function FieldRow({ label, field, onSave, readOnly, issue }) {
   const [value, setValue] = useState(field?.wert ?? "");
   useEffect(() => { setValue(field?.wert ?? ""); }, [field?.wert]);
@@ -226,9 +238,9 @@ export default function Pruefbildschirm() {
           Bitte alle Werte sorgfältig prüfen und bestätigen.
         </div>
       )}
-      {model.abweichungen?.length > 0 && (
+      {offeneAbweichungen(model).length > 0 && (
         <div className="banner warn">
-          {model.abweichungen.length} Feld(er) weichen zwischen PDF und CSV ab (gelb markiert) – bitte prüfen.
+          {offeneAbweichungen(model).length} Feld(er) weichen zwischen PDF und CSV ab (gelb markiert) – bitte prüfen.
         </div>
       )}
       {error && (
