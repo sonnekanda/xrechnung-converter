@@ -1,14 +1,15 @@
 """Orchestrierung des Extraktions-Datenpfads.
 
 Regeln (Kern-Arbeitsannahmen):
-  * CSV vorhanden -> CSV ist massgeblich (strukturierte Abas-Daten). Eine
-                     vorhandene PDF-Textebene fuellt nur die Luecken der CSV
-                     (Menge/Einzelpreis/Beschreibung je Position, Rechnungs-
-                     datum, Adresse) und dient der Gegenpruefung
-                     (Abweichung = gelb). OCR entfaellt in diesem Fall komplett:
-                     liegen strukturierte Daten vor, braucht es keine fehler-
-                     anfaellige Bilderkennung (die z.B. "DEO0001" statt
-                     "DE00001" liefern kann).
+  * CSV vorhanden -> CSV ist massgeblich (strukturierte Abas-Daten). Da die CSV
+                     nicht alle Felder liefert (z.B. Menge/Einzelpreis/
+                     Beschreibung je Position, Rechnungsdatum, Adresse), fuellt
+                     die PDF-Textebene bzw. - bei Scans - OCR diese Luecken auf.
+                     Die CSV hat Vorrang: vorhandene CSV-Werte werden nie
+                     ueberschrieben. Gegenpruefung nur gegen die zuverlaessige
+                     PDF-Textebene (Abweichung = gelb); gegen OCR wird NICHT
+                     gegengeprueft, da fehleranfaellig (z.B. "DEO0001" statt
+                     "DE00001"). OCR-Werte bleiben unsicher/pflicht.
   * nur PDF mit Textebene  -> PDF fuehrt.
   * nur PDF ohne Textebene -> needs_ocr (ocr-worker, Ergebnis prueffpflichtig).
 
@@ -100,20 +101,27 @@ def crosscheck(csv_model: InvoiceModel, pdf_model: InvoiceModel) -> None:
             compare(p, pdf_by_art[art], "gesamtpreis", pos_index=i)
 
 
-def merge_fill(base: InvoiceModel, extra: InvoiceModel) -> None:
-    """Fuellt leere/fehlende Felder in ``base`` (CSV) aus ``extra`` (PDF-Text-
-    ebene). Vorhandene, gesicherte CSV-Werte bleiben unangetastet - die CSV
-    bleibt massgeblich, das PDF liefert nur, was die CSV nicht enthaelt."""
+def merge_fill(base: InvoiceModel, extra: InvoiceModel, *, reliable: bool = True) -> None:
+    """Fuellt leere/fehlende Felder in ``base`` (CSV) aus ``extra`` (PDF-Textebene
+    oder OCR). Vorhandene, gesicherte CSV-Werte bleiben unangetastet - die CSV
+    bleibt massgeblich, ``extra`` liefert nur, was die CSV nicht enthaelt.
+
+    ``reliable`` unterscheidet die Quelle: Bei einer PDF-Textebene (True) darf der
+    explizit ausgewiesene Steuersatz den nur abgeleiteten CSV-Satz ersetzen; bei
+    OCR (False) werden ausschliesslich echte Luecken gefuellt - unsichere OCR-
+    Werte (herkunft=ocr) bleiben pruefpflichtig und ueberschreiben nichts, was die
+    CSV bereits verlaesslich liefert."""
     for name in _MERGE_KOPF:
         if _is_empty(base.kopf.get(name)) and not _is_empty(extra.kopf.get(name)):
             base.kopf[name] = dict(extra.kopf[name])
 
-    # Dokument-Steuersatz: aus CSV nur abgeleitet (unsicher) - der explizit im
-    # PDF ausgewiesene Satz ist verlaesslicher.
-    csv_satz = base.summen.get("steuersatz")
-    if (_is_empty(csv_satz) or (csv_satz and csv_satz.get("status") == Status.UNSICHER.value)) \
-            and not _is_empty(extra.summen.get("steuersatz")):
-        base.summen["steuersatz"] = dict(extra.summen["steuersatz"])
+    # Dokument-Steuersatz: aus CSV nur abgeleitet (unsicher) - der explizit in
+    # einer PDF-Textebene ausgewiesene Satz ist verlaesslicher (OCR nicht).
+    if reliable:
+        csv_satz = base.summen.get("steuersatz")
+        if (_is_empty(csv_satz) or (csv_satz and csv_satz.get("status") == Status.UNSICHER.value)) \
+                and not _is_empty(extra.summen.get("steuersatz")):
+            base.summen["steuersatz"] = dict(extra.summen["steuersatz"])
 
     # Positionen nach Artikelnummer zusammenfuehren.
     extra_by_art = {p["artikelnummer"]["wert"]: p for p in extra.positionen
@@ -138,17 +146,27 @@ def run_extraction(pdf_path: str | Path | None = None,
     # NICHT ge-OCR-t - die CSV liefert die verlaesslichen Daten.
     pdf_res: PdfResult | None = extract_pdf(pdf_path) if pdf_path else None
 
-    # --- Fall 1: CSV vorhanden -> CSV ist massgeblich, OCR entfaellt. ---------
+    # --- Fall 1: CSV vorhanden -> CSV ist massgeblich, PDF/OCR fuellt Luecken. -
     if csv_model is not None:
         csv_model.quelle["pdf_datei"] = Path(pdf_path).name if pdf_path else None
-        csv_model.quelle["ocr_verwendet"] = False
+        used_ocr = False
         if pdf_res and pdf_res.model:
-            # Textebene vorhanden: gemeinsame Felder gegenpruefen (Abweichung
-            # = gelb), danach CSV-Luecken aus dem PDF auffuellen.
+            # Zuverlaessige Textebene: gemeinsame Felder gegenpruefen (Abweichung
+            # = gelb) und danach die CSV-Luecken aus dem PDF auffuellen.
             crosscheck(csv_model, pdf_res.model)
-            merge_fill(csv_model, pdf_res.model)
+            merge_fill(csv_model, pdf_res.model, reliable=True)
+        elif pdf_res and pdf_res.needs_ocr and ocr_available():
+            # Scan: OCR liefert nur die Felder, die der CSV fehlen (Menge,
+            # Einzelpreis, Beschreibung ...). KEINE Gegenpruefung gegen OCR - das
+            # ist zu fehleranfaellig und wuerde die massgebliche CSV faelschlich
+            # gelb markieren. OCR-Werte bleiben herkunft=ocr/unsicher (pflicht).
+            ocr_model = run_ocr(pdf_path)
+            if ocr_model is not None:
+                merge_fill(csv_model, ocr_model, reliable=False)
+                used_ocr = True
+        csv_model.quelle["ocr_verwendet"] = used_ocr
         _flag_gutschrift(csv_model)
-        return ExtractionOutcome(model=csv_model, needs_ocr=False,
+        return ExtractionOutcome(model=csv_model, needs_ocr=used_ocr,
                                  raw_text=pdf_res.raw_text if pdf_res else "")
 
     # --- Fall 2: nur PDF -----------------------------------------------------

@@ -68,16 +68,41 @@ def test_crosscheck_markiert_csv_feld_bei_abweichung():
     assert any(a["feld"] == "bruttobetrag" for a in csv_model.abweichungen)
 
 
-def test_scan_mit_csv_ueberspringt_ocr(monkeypatch):
-    # Liegt eine CSV vor, darf OCR gar nicht erst aufgerufen werden.
+def test_scan_mit_csv_ocr_fuellt_luecken_csv_hat_vorrang(monkeypatch):
+    # Scan + CSV: OCR liefert die der CSV fehlenden Felder (Menge ...), die CSV
+    # behaelt aber Vorrang - fehlerhafte OCR-Werte ueberschreiben sie nicht, und
+    # es gibt KEINE Gegenpruefung gegen OCR.
     import app.pipeline as pipeline
-    monkeypatch.setattr(pipeline, "run_ocr",
-                        lambda *a, **k: pytest.fail("OCR darf bei vorhandener CSV nicht laufen"))
+    from app.pdf_path import extract_pdf_text
+    from app.ocr_client import _tag_ocr
+
+    def fake_ocr(_path):
+        text = ("Rechnung Nr. 400014\nvom 05.07.2026\nUnsere USt-IdNr DEO0001\n"
+                "100005 3,00 Stück 6.545,00 19,00 19.635,00\nSpezialteil\n"
+                "Nettosumme 19.635,00\n")
+        m = extract_pdf_text(text, "400014.pdf")
+        m.quelle = {"pdf_datei": "400014.pdf", "pdf_hat_textebene": False, "ocr_verwendet": True}
+        _tag_ocr(m)
+        return m
+
+    monkeypatch.setattr(pipeline, "ocr_available", lambda: True)
+    monkeypatch.setattr(pipeline, "run_ocr", fake_ocr)
+
     r = run_extraction(pdf_path=SCAN_PDF, csv_path=CSV / "400014.csv")
-    assert r.needs_ocr is False
-    assert r.model is not None
-    assert r.model.quelle.get("ocr_verwendet") is False
-    assert len(r.model.positionen) == 2
+    m = r.model.to_dict()
+    assert r.needs_ocr is True
+    assert m["quelle"]["ocr_verwendet"] is True
+    # CSV hat Vorrang: verkaeufer_ustid bleibt der CSV-Wert (nicht OCR "DEO0001").
+    assert m["kopf"]["verkaeufer_ustid"]["herkunft"] == "csv"
+    assert m["kopf"]["verkaeufer_ustid"]["wert"] != "DEO0001"
+    # Keine Gegenpruefung gegen OCR -> keine Abweichungen.
+    assert m["abweichungen"] == []
+    # OCR fuellt die CSV-Luecke Menge als unsicher/pflichtig.
+    pos = m["positionen"][0]
+    assert pos["menge"]["herkunft"] == "ocr"
+    assert pos["menge"]["status"] == "unsicher"
+    # CSV-eigener Wert bleibt (Gesamtpreis aus CSV).
+    assert pos["gesamtpreis"]["herkunft"] == "csv"
 
 
 if __name__ == "__main__":

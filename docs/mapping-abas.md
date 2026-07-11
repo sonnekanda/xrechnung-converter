@@ -60,9 +60,11 @@ Positionen gezählt.
 > Einheit, Einzelpreis oder Beschreibung. Diese Felder werden im CSV-Pfad als
 > `fehlt` (rot) markiert und aus dem PDF bzw. manuell ergänzt. Genau dafür ist
 > die PDF↔CSV-Kombination gedacht: **liegt eine CSV vor, ist sie maßgeblich**
-> (strukturierte Daten), die PDF-Textebene füllt nur die Lücken und dient der
-> Gegenprüfung. OCR entfällt bei vorhandener CSV komplett – so entstehen keine
-> Erkennungsfehler (z. B. `DEO0001` statt `DE00001`).
+> (strukturierte Daten). Die PDF-Textebene bzw. – bei Scans – OCR füllt nur die
+> Lücken der CSV. Vorhandene CSV-Werte behalten Vorrang und werden nie
+> überschrieben. Gegen die zuverlässige PDF-Textebene wird gegengeprüft
+> (Abweichung = gelb); **gegen OCR nicht**, da fehleranfällig (sonst würde z. B.
+> ein OCR-`DEO0001` das korrekte CSV-`DE00001` fälschlich als Abweichung melden).
 
 ## 2. PDF-Struktur
 
@@ -86,10 +88,10 @@ Fälligkeit 09.07.2026
 Erkannt werden Rechnungsnummer, Datum, Fälligkeit, USt-IdNr, Käufer-Adressblock,
 Positionen (Menge/Einheit/Einzel-/Gesamtpreis/Steuersatz) und Summen.
 
-Fehlt die Textebene (Scan, z.B. **400014**) **und liegt keine CSV vor**, erkennt
-der `extraction-worker` `needs_ocr` und übergibt an den `ocr-worker`. OCR-Ergebnisse
-sind grundsätzlich `unsicher` (gelb) und prüfpflichtig. Liegt hingegen eine CSV
-vor, wird OCR übersprungen und die CSV verwendet.
+Fehlt die Textebene (Scan, z.B. **400014**), erkennt der `extraction-worker`
+`needs_ocr` und übergibt an den `ocr-worker`. OCR-Ergebnisse sind grundsätzlich
+`unsicher` (gelb) und prüfpflichtig. Liegt zusätzlich eine CSV vor, dient OCR nur
+dem Füllen der CSV-Lücken (die CSV behält Vorrang, keine Gegenprüfung gegen OCR).
 
 ## 3. Feldabgleich Abas ↔ XRechnung (Auszug)
 
