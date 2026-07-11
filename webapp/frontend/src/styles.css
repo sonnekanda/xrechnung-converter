@@ -47,11 +47,15 @@ input, select {
 /* Layout mit Navigationsleiste */
 .app { display: flex; min-height: 100vh; }
 .sidebar {
-  position: relative;
+  /* Volle Bildschirmhöhe, oben angeheftet: bei langen Seiten (Prüfbildschirm)
+     wächst die Sidebar nicht mit – Griff bleibt mittig, Fußtasten sichtbar. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
   background: #10203a;
   color: #cdd6e5;
   width: 240px;
-  flex: 0 0 240px; /* explizite Basis, damit das Einklappen zuverlässig greift */
   transition: width 0.15s ease;
   display: flex;
   flex-direction: column;
@@ -68,7 +72,7 @@ input, select {
   transition: background 0.12s ease, color 0.12s ease;
 }
 .sidebar-toggle:hover { background: var(--brand); color: #fff; }
-.sidebar.collapsed { width: 64px; flex: 0 0 64px; }
+.sidebar.collapsed { width: 64px; }
 .sidebar .brand {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px 16px; font-weight: 700; color: #fff; font-size: 18px;
