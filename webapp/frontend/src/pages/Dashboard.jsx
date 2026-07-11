@@ -99,6 +99,10 @@ export default function Dashboard() {
     try { await api.download(api.exportPath(inv.id), `rechnung-${inv.rechnungsnummer || inv.id}.xml`); }
     catch (e) { alert(e.message); }
   }
+  async function downloadZugferd(inv) {
+    try { await api.download(api.zugferdPath(inv.id), `rechnung-${inv.rechnungsnummer || inv.id}-zugferd.pdf`); }
+    catch (e) { alert(e.message); }
+  }
   function toggleOne(id) {
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
@@ -212,6 +216,10 @@ export default function Dashboard() {
                     <>
                       <Link to={`/pruefen/${i.id}`}><button className="secondary small">Ansehen</button></Link>
                       <button className="small" onClick={() => download(i)}>XML</button>
+                      {i.pdfFilename && (
+                        <button className="secondary small" title="ZUGFeRD-PDF (XRechnung im Original-PDF) herunterladen"
+                                onClick={() => downloadZugferd(i)}>ZUGFeRD</button>
+                      )}
                       <button className="secondary small" title="Validierungsbericht anzeigen"
                               onClick={() => setBericht(i)}>Bericht</button>
                     </>
