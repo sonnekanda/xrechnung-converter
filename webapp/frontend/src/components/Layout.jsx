@@ -20,6 +20,18 @@ export default function Layout() {
     });
   }
 
+  // Einstellungen öffnen: bei eingeklappter Sidebar diese zuerst ausklappen,
+  // damit der Klick eine sichtbare Reaktion hat (Textpunkte brauchen Platz).
+  function openSettings() {
+    if (!expanded) {
+      setExpanded(true);
+      api.setNav(true).catch(() => {});
+      setSettingsOpen(true);
+    } else {
+      setSettingsOpen((o) => !o);
+    }
+  }
+
   // Zaehler offener Pruefungen im Navigationsmenue.
   useEffect(() => {
     let alive = true;
@@ -59,6 +71,10 @@ export default function Layout() {
   return (
     <div className="app">
       <nav className={`sidebar ${expanded ? "" : "collapsed"}`}>
+        <button className="sidebar-toggle" onClick={toggleNav}
+                title="Menü ein-/ausklappen" aria-label="Menü ein-/ausklappen">
+          {expanded ? "‹" : "›"}
+        </button>
         <div className="brand">
           <span className="logo">{(branding.name || "s")[0].toUpperCase()}</span>
           {expanded && <span>{branding.name}</span>}
@@ -75,7 +91,7 @@ export default function Layout() {
         {settingsItems.length > 0 && (
           <div className="nav-group">
             <button className={`nav-item group-toggle ${onSettingsRoute ? "active-parent" : ""}`}
-                    onClick={() => setSettingsOpen((o) => !o)} title="Einstellungen"
+                    onClick={openSettings} title="Einstellungen"
                     aria-expanded={settingsOpen}>
               <span className="ico">⚙</span>
               {expanded && <span>Einstellungen</span>}
@@ -88,10 +104,6 @@ export default function Layout() {
           </div>
         )}
 
-        <button className="nav-item collapse-btn" onClick={toggleNav} title="Menü ein-/ausklappen">
-          <span className="ico">{expanded ? "«" : "»"}</span>
-          {expanded && <span>Einklappen</span>}
-        </button>
         <button className="nav-item collapse-btn" onClick={doLogout} title="Abmelden">
           <span className="ico">⏻</span>
           {expanded && <span>Abmelden</span>}

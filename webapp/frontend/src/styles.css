@@ -47,16 +47,28 @@ input, select {
 /* Layout mit Navigationsleiste */
 .app { display: flex; min-height: 100vh; }
 .sidebar {
+  position: relative;
   background: #10203a;
   color: #cdd6e5;
   width: 240px;
+  flex: 0 0 240px; /* explizite Basis, damit das Einklappen zuverlässig greift */
   transition: width 0.15s ease;
   display: flex;
   flex-direction: column;
   padding: 16px 10px;
   gap: 4px;
 }
-.sidebar.collapsed { width: 64px; }
+/* Ein-/Ausklappen: runder Griff mittig auf der rechten Kante der Sidebar. */
+.sidebar-toggle {
+  position: absolute; top: 50%; right: -13px; transform: translateY(-50%);
+  width: 26px; height: 26px; padding: 0; border-radius: 50%;
+  background: #1b2c48; color: #cdd6e5; border: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid; place-items: center; cursor: pointer; z-index: 5;
+  font-size: 15px; line-height: 1; box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sidebar-toggle:hover { background: var(--brand); color: #fff; }
+.sidebar.collapsed { width: 64px; flex: 0 0 64px; }
 .sidebar .brand {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px 16px; font-weight: 700; color: #fff; font-size: 18px;
