@@ -66,12 +66,13 @@ Im Admin-Menü **Ordner-Automatik** ohne Neustart konfigurierbar:
   festgelegt und in der Oberfläche read-only angezeigt (z. B. `C:\abas\in`).
   Optional lässt sich ein **Unterordner** ergänzen (im Container/Host darunter).
   Änderung des Host-Ordners = `.env` anpassen + Neustart (übernimmt später der
-  Installer/Launcher). On-premise wird der Host-Ordner über das Overlay
-  eingebunden:
-  `docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d`
-  mit `WATCH_HOST_INPUT_DIR`/`WATCH_HOST_OUTPUT_DIR` in der `.env`
-  (Windows-Pfade mit Vorwärtsslashes, z. B. `C:/abas/in`). Ohne Overlay
-  (Cloud/SFTP) liegen die Ordner im internen Datenvolumen.
+  Installer/Launcher). On-premise wird der Host-Ordner über
+  `WATCH_HOST_INPUT_DIR`/`WATCH_HOST_OUTPUT_DIR` in der `.env` eingebunden
+  (Windows-Pfade mit Vorwärtsslashes, z. B. `C:/abas/in`); es gibt **nur ein**
+  Compose-File, der Mount-Typ ergibt sich aus dem Wert. Leer lassen (Cloud/SFTP)
+  = interne Docker-Volumes. Vor dem Start `sh scripts/preflight-check.sh`
+  ausführen, damit fehlende Host-Ordner sofort auffallen statt still angelegt zu
+  werden. Start dann wie gewohnt: `docker compose up -d`.
 - **Prüfintervall** – wie oft der Ordner geprüft wird.
 - **Settle-Zeit** – Wartezeit, bis eine neue Datei als „stabil" gilt. So kommen
   zusammengehörige PDF/CSV-Dateien an, bevor verarbeitet wird (kein Zerlegen des

@@ -69,10 +69,13 @@ docker compose up -d      # Stack bauen und starten
 - Erst-Login: `ADMIN_EMAIL` / `ADMIN_PASSWORD` aus der `.env`
 
 Für die **Ordner-Automatik on-premise** (Abas schreibt in einen Host-Ordner)
-zusätzlich das Overlay verwenden – Host-Ordner über `WATCH_HOST_*` in der `.env`:
+die Host-Ordner über `WATCH_HOST_INPUT_DIR` / `WATCH_HOST_OUTPUT_DIR` in der
+`.env` setzen (leer lassen = internes Volume, Standard). Es gibt **nur ein**
+Compose-File; der Mount-Typ ergibt sich aus dem Wert. Vorher prüfen, dass die
+Ordner existieren (sonst legt Docker still einen leeren an):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.watch.yml up -d
+sh scripts/preflight-check.sh && docker compose up -d
 ```
 
 Beispieldateien zum Ausprobieren liegen unter `aufgabe/Musterrechnung *`.

@@ -52,8 +52,8 @@ export default function OrdnerAutomatik() {
           ) : (
             <p className="muted" style={{ marginTop: 0 }}>
               Es ist kein Host-Ordner eingebunden (Cloud-/SFTP-Betrieb). Die Ordner liegen im
-              internen Datenvolumen. Für on-premise das Overlay <code>docker-compose.watch.yml</code>
-              nutzen. Optional ein Unterordner:
+              internen Datenvolumen. Für on-premise <code>WATCH_HOST_INPUT_DIR</code>/
+              <code>WATCH_HOST_OUTPUT_DIR</code> in der <code>.env</code> setzen. Optional ein Unterordner:
             </p>
           )}
           <div className="field-row">

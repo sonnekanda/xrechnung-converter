@@ -49,7 +49,8 @@ services:
       WATCH_INPUT_DIR: ${WATCH_INPUT_DIR:-/data/watch/in}
       WATCH_OUTPUT_DIR: ${WATCH_OUTPUT_DIR:-/data/watch/out}
       WATCH_INTERVAL: ${WATCH_INTERVAL:-60}
-      # Host-Ordner nur zur Anzeige in der Oberflaeche (Bind erfolgt via Overlay).
+      # Host-Ordner zur Anzeige in der Oberflaeche; derselbe Wert steuert oben
+      # den Volume-Bind (leer = internes Volume, Pfad = Bind auf den Host-Ordner).
       WATCH_HOST_INPUT_DIR: ${WATCH_HOST_INPUT_DIR:-}
       WATCH_HOST_OUTPUT_DIR: ${WATCH_HOST_OUTPUT_DIR:-}
       # Lizenzcontroller-Schnittstelle (Durchsetzung optional, Default aus)
@@ -74,6 +75,13 @@ services:
       - "${WEBAPP_PORT:-8080}:8080"
     volumes:
       - app-data:/data
+      # Ordner-Automatik: Standard = internes Volume (Cloud/SFTP – kein Host-Setup
+      # nötig). Für on-premise WATCH_HOST_INPUT_DIR/OUTPUT_DIR in der .env auf einen
+      # Host-Ordner setzen (z.B. C:/abas/in) -> dann Bind-Mount statt Volume.
+      # Vor dem Start bei gesetzten Host-Ordnern scripts/preflight-check.sh laufen
+      # lassen (verhindert das stille Anlegen leerer Ordner an falscher Stelle).
+      - "${WATCH_HOST_INPUT_DIR:-watch-in}:/data/watch/in"
+      - "${WATCH_HOST_OUTPUT_DIR:-watch-out}:/data/watch/out"
     networks: [sic-net]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
@@ -213,5 +221,9 @@ networks:
 
 volumes:
   app-data:
+  # Watch-Ein-/Ausgang als internes Volume (Standard). Bei gesetzten
+  # WATCH_HOST_INPUT_DIR/OUTPUT_DIR werden stattdessen die Host-Ordner gebunden.
+  watch-in:
+  watch-out:
   pg-data:
   redis-data:
