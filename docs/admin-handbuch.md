@@ -76,6 +76,9 @@ Im Admin-Menü **Ordner-Automatik** ohne Neustart konfigurierbar:
 - **Settle-Zeit** – Wartezeit, bis eine neue Datei als „stabil" gilt. So kommen
   zusammengehörige PDF/CSV-Dateien an, bevor verarbeitet wird (kein Zerlegen des
   Paares in zwei Rechnungen).
+- **Automatisch erzeugen** – Zielformat des Auto-Exports: **XRechnung (XML)**,
+  **ZUGFeRD (PDF)** oder **Beide**. ZUGFeRD benötigt ein Original-PDF; liegt zu
+  einer Rechnung nur eine CSV vor, wird ersatzweise die XRechnung-XML geschrieben.
 - **Gelbe Felder automatisch bestätigen** – für echten Auto-Export. **OCR-Werte
   bleiben ausgenommen** und prüfpflichtig; Scan-Rechnungen werden daher nicht
   automatisch exportiert.
@@ -84,8 +87,9 @@ Die `.env`-Werte `WATCH_ENABLED`/`WATCH_INTERVAL` dienen nur als Startvorgabe;
 maßgeblich sind danach die Einstellungen im Admin-Bereich. Neue Dateien laufen
 exakt denselben Weg wie ein Upload.
 
-- Nur **vollständig gültige** Rechnungen werden automatisch als XRechnung + Bericht
-  in den Ausgangsordner (`WATCH_OUTPUT_DIR`) exportiert.
+- Nur **vollständig gültige** Rechnungen werden automatisch im gewählten Format
+  (XRechnung-XML + Bericht und/oder ZUGFeRD-PDF) in den Ausgangsordner
+  (`WATCH_OUTPUT_DIR`) exportiert.
 - Unsichere/unvollständige Rechnungen erscheinen im **Prüfbildschirm** zur
   manuellen Bearbeitung – kein Auto-Export.
 - Verarbeitete Eingangsdateien werden nach `.done` (exportiert) bzw. `.error`

@@ -42,6 +42,10 @@ public class AppSettings {
     @Column(name = "auto_confirm_yellow", nullable = false)
     private boolean autoConfirmYellow = false;
 
+    /** Zielformat des Auto-Exports: XRECHNUNG (XML), ZUGFERD (PDF) oder BEIDE. */
+    @Column(name = "watch_output_format", nullable = false)
+    private String watchOutputFormat = "XRECHNUNG";
+
     public UUID getId() {
         return id;
     }
@@ -92,5 +96,25 @@ public class AppSettings {
 
     public void setAutoConfirmYellow(boolean autoConfirmYellow) {
         this.autoConfirmYellow = autoConfirmYellow;
+    }
+
+    public String getWatchOutputFormat() {
+        return watchOutputFormat;
+    }
+
+    public void setWatchOutputFormat(String watchOutputFormat) {
+        this.watchOutputFormat = normalizeFormat(watchOutputFormat);
+    }
+
+    /** Nur bekannte Werte zulassen; alles andere -> XRECHNUNG (sicherer Default). */
+    private static String normalizeFormat(String v) {
+        if (v == null) {
+            return "XRECHNUNG";
+        }
+        String u = v.trim().toUpperCase(java.util.Locale.ROOT);
+        return switch (u) {
+            case "ZUGFERD", "BEIDE", "XRECHNUNG" -> u;
+            default -> "XRECHNUNG";
+        };
     }
 }

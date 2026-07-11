@@ -196,6 +196,37 @@ public class WatchFolderService {
         Files.createDirectories(output);
         String name = invoice.getRechnungsnummer() != null ? invoice.getRechnungsnummer()
                 : invoice.getId().toString();
+
+        String format = s.getWatchOutputFormat();
+        boolean wantXml = !"ZUGFERD".equals(format);            // XRECHNUNG oder BEIDE
+        boolean wantZugferd = "ZUGFERD".equals(format) || "BEIDE".equals(format);
+        boolean xmlWritten = false;
+
+        if (wantXml) {
+            writeXml(output, name, invoice, xml);
+            xmlWritten = true;
+        }
+        if (wantZugferd) {
+            if (invoice.getPdfFilename() != null) {
+                try {
+                    byte[] pdf = invoiceService.zugferd(invoice.getId());
+                    Files.write(output.resolve("rechnung-" + name + "-zugferd.pdf"), pdf);
+                } catch (Exception e) {
+                    // ZUGFeRD ist Best-Effort: bei Fehler wenigstens die XML sichern.
+                    log.warn("Ordner-Automatik: ZUGFeRD für {} fehlgeschlagen", name, e);
+                    if (!xmlWritten) {
+                        writeXml(output, name, invoice, xml);
+                    }
+                }
+            } else if (!xmlWritten) {
+                // ZUGFeRD gewünscht, aber kein Original-PDF -> XML als Ausweich.
+                log.info("Ordner-Automatik: {} ohne Original-PDF -> ZUGFeRD nicht möglich, XML geschrieben", name);
+                writeXml(output, name, invoice, xml);
+            }
+        }
+    }
+
+    private void writeXml(Path output, String name, Invoice invoice, byte[] xml) throws IOException {
         Files.write(output.resolve("rechnung-" + name + ".xml"), xml);
         if (invoice.getValidationReport() != null) {
             Files.writeString(output.resolve("rechnung-" + name + "-bericht.xml"),

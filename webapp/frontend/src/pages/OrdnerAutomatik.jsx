@@ -29,7 +29,7 @@ export default function OrdnerAutomatik() {
       <h2>Ordner-Automatik</h2>
       <p className="muted">
         Rechnungen aus dem Eingangsordner werden automatisch verarbeitet – exakt wie beim
-        Hochladen. Nur vollständig gültige Rechnungen werden automatisch als XRechnung
+        Hochladen. Nur vollständig gültige Rechnungen werden automatisch im gewählten Format
         exportiert; unsichere landen im Prüfbildschirm.
       </p>
       {msg && <div className="banner ok">{msg}</div>}
@@ -66,6 +66,21 @@ export default function OrdnerAutomatik() {
           </div>
 
           <div className="section-title">Verhalten</div>
+          <div className="field-row">
+            <label>Automatisch erzeugen</label>
+            <div className="val">
+              <select value={s.watchOutputFormat || "XRECHNUNG"}
+                      onChange={(e) => set("watchOutputFormat", e.target.value)}>
+                <option value="XRECHNUNG">XRechnung (XML)</option>
+                <option value="ZUGFERD">ZUGFeRD (PDF)</option>
+                <option value="BEIDE">Beide (XML + ZUGFeRD)</option>
+              </select>
+            </div>
+          </div>
+          <p className="muted" style={{ marginTop: 0 }}>
+            ZUGFeRD benötigt ein Original-PDF. Liegt zu einer Rechnung nur eine CSV vor,
+            wird ersatzweise die XRechnung-XML in den Ausgangsordner geschrieben.
+          </p>
           <div className="field-row">
             <label>Prüfintervall (Sekunden)</label>
             <div className="val"><input type="number" min="1" value={s.watchIntervalSeconds}

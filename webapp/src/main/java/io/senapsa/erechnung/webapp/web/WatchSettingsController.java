@@ -49,6 +49,7 @@ public class WatchSettingsController {
     private View view(AppSettings s) {
         return new View(s.isWatchEnabled(), s.getWatchInputSubdir(), s.getWatchOutputSubdir(),
                 s.getWatchIntervalSeconds(), s.getWatchSettleSeconds(), s.isAutoConfirmYellow(),
+                s.getWatchOutputFormat(),
                 baseInput, baseOutput, hostInput, hostOutput,
                 join(baseInput, s.getWatchInputSubdir()), join(baseOutput, s.getWatchOutputSubdir()),
                 joinHost(hostInput, s.getWatchInputSubdir()), joinHost(hostOutput, s.getWatchOutputSubdir()));
@@ -73,6 +74,7 @@ public class WatchSettingsController {
      */
     public record View(boolean watchEnabled, String watchInputSubdir, String watchOutputSubdir,
                        int watchIntervalSeconds, int watchSettleSeconds, boolean autoConfirmYellow,
+                       String watchOutputFormat,
                        String baseInputDir, String baseOutputDir,
                        String hostInputDir, String hostOutputDir,
                        String effectiveInputDir, String effectiveOutputDir,

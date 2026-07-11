@@ -45,6 +45,7 @@ public class AppSettingsService {
         s.setWatchIntervalSeconds(input.getWatchIntervalSeconds());
         s.setWatchSettleSeconds(input.getWatchSettleSeconds());
         s.setAutoConfirmYellow(input.isAutoConfirmYellow());
+        s.setWatchOutputFormat(input.getWatchOutputFormat());
         return repo.save(s);
     }
 
