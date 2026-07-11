@@ -27,7 +27,7 @@ export default function Einstellungen() {
 
   return (
     <div className="panel" style={{ maxWidth: 560 }}>
-      <h2>Einstellungen</h2>
+      <h2>Konfiguration</h2>
       <p className="muted">
         Betriebskonfiguration (schreibgeschützt). Änderungen erfolgen über die
         zentrale <code>.env</code> und wirken nach einem Neustart des Stacks. Secrets

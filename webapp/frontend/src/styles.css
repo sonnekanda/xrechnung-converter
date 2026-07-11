@@ -82,6 +82,14 @@ input, select {
 .sidebar .spacer { flex: 1; }
 .collapse-btn { color: #8b98ad; background: transparent; text-align: left; }
 
+/* Aufklappbare Einstellungen-Gruppe (unten) */
+.nav-group { display: flex; flex-direction: column; gap: 4px; }
+.nav-item.group-toggle { background: transparent; text-align: left; width: 100%; font-weight: 600; }
+.nav-item.group-toggle.active-parent { color: #fff; }
+.nav-item .chevron { margin-left: auto; font-size: 11px; color: #8b98ad; }
+.nav-item.sub { padding-left: 34px; }
+.sidebar.collapsed .nav-item.sub { padding-left: 12px; }
+
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .topbar {
   background: var(--panel); border-bottom: 1px solid var(--line);

@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { api } from "../api";
 
 export default function Layout() {
   const { user, isAdmin, branding, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   // Startzustand aus dem je Benutzer gespeicherten Wert (Server), Fallback offen.
   const [expanded, setExpanded] = useState(user?.navExpanded !== false);
   const [offen, setOffen] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   function toggleNav() {
     setExpanded((v) => {
@@ -30,17 +32,24 @@ export default function Layout() {
     return () => { alive = false; clearInterval(t); };
   }, []);
 
+  // Hauptmenü: häufig genutzt (Stammdaten bleibt hier).
   const items = [
     { to: "/", ico: "▤", label: "Übersicht", end: true },
     { to: "/upload", ico: "⭱", label: "Hochladen" },
-    ...(isAdmin ? [
-      { to: "/firma", ico: "☗", label: "Eigene Firma" },
-      { to: "/stammdaten", ico: "☷", label: "Stammdaten" },
-      { to: "/benutzer", ico: "☺", label: "Benutzer" },
-      { to: "/ordner-automatik", ico: "📂", label: "Ordner-Automatik" },
-      { to: "/einstellungen", ico: "⚙", label: "Einstellungen" },
-    ] : []),
+    ...(isAdmin ? [{ to: "/stammdaten", ico: "☷", label: "Stammdaten" }] : []),
   ];
+
+  // Einstellungen: seltener genutzt, als aufklappbare Gruppe unten bei „Abmelden".
+  const settingsItems = isAdmin ? [
+    { to: "/firma", ico: "☗", label: "Eigene Firma" },
+    { to: "/benutzer", ico: "☺", label: "Benutzer" },
+    { to: "/ordner-automatik", ico: "📂", label: "Ordner-Automatik" },
+    { to: "/einstellungen", ico: "⚙", label: "Konfiguration" },
+  ] : [];
+
+  const onSettingsRoute = settingsItems.some((it) => location.pathname === it.to);
+  // Beim Betreten einer Einstellungs-Seite die Gruppe automatisch aufklappen.
+  useEffect(() => { if (onSettingsRoute) setSettingsOpen(true); }, [onSettingsRoute]);
 
   function doLogout() {
     logout();
@@ -62,6 +71,25 @@ export default function Layout() {
           </NavLink>
         ))}
         <div className="spacer" />
+
+        {settingsItems.length > 0 && (
+          <div className="nav-group">
+            <button className={`nav-item group-toggle ${onSettingsRoute ? "active-parent" : ""}`}
+                    onClick={() => setSettingsOpen((o) => !o)} title="Einstellungen"
+                    aria-expanded={settingsOpen}>
+              <span className="ico">⚙</span>
+              {expanded && <span>Einstellungen</span>}
+              {expanded && <span className="chevron">{settingsOpen ? "▾" : "▸"}</span>}
+            </button>
+            {settingsOpen && settingsItems.map((it) => (
+              <NavLink key={it.to} to={it.to} className="nav-item sub" title={it.label}>
+                <span className="ico">{it.ico}</span>
+                {expanded && <span>{it.label}</span>}
+              </NavLink>
+            ))}
+          </div>
+        )}
+
         <button className="nav-item collapse-btn" onClick={toggleNav} title="Menü ein-/ausklappen">
           <span className="ico">{expanded ? "«" : "»"}</span>
           {expanded && <span>Einklappen</span>}
