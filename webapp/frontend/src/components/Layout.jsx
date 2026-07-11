@@ -48,8 +48,8 @@ export default function Layout() {
   ] : [];
 
   const onSettingsRoute = settingsItems.some((it) => location.pathname === it.to);
-  // Beim Betreten einer Einstellungs-Seite die Gruppe automatisch aufklappen.
-  useEffect(() => { if (onSettingsRoute) setSettingsOpen(true); }, [onSettingsRoute]);
+  // Automatik: auf einer Einstellungs-Seite aufklappen, beim Verlassen wieder zu.
+  useEffect(() => { setSettingsOpen(onSettingsRoute); }, [onSettingsRoute]);
 
   function doLogout() {
     logout();
@@ -79,12 +79,10 @@ export default function Layout() {
                     aria-expanded={settingsOpen}>
               <span className="ico">⚙</span>
               {expanded && <span>Einstellungen</span>}
-              {expanded && <span className="chevron">{settingsOpen ? "▾" : "▸"}</span>}
             </button>
-            {settingsOpen && settingsItems.map((it) => (
+            {expanded && settingsOpen && settingsItems.map((it) => (
               <NavLink key={it.to} to={it.to} className="nav-item sub" title={it.label}>
-                <span className="ico">{it.ico}</span>
-                {expanded && <span>{it.label}</span>}
+                {it.label}
               </NavLink>
             ))}
           </div>

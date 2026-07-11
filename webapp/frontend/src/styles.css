@@ -83,12 +83,16 @@ input, select {
 .collapse-btn { color: #8b98ad; background: transparent; text-align: left; }
 
 /* Aufklappbare Einstellungen-Gruppe (unten) */
-.nav-group { display: flex; flex-direction: column; gap: 4px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-item.group-toggle { background: transparent; text-align: left; width: 100%; font-weight: 600; }
 .nav-item.group-toggle.active-parent { color: #fff; }
-.nav-item .chevron { margin-left: auto; font-size: 11px; color: #8b98ad; }
-.nav-item.sub { padding-left: 34px; }
-.sidebar.collapsed .nav-item.sub { padding-left: 12px; }
+/* Unterpunkte: nur Text, kleiner und dichter; Hover ohne Kachel – nur heller. */
+.nav-item.sub {
+  padding: 4px 12px 4px 42px; font-size: 12.5px; color: #8b98ad;
+  background: transparent; border-radius: 6px;
+}
+.nav-item.sub:hover { background: transparent; color: #ffffff; }
+.nav-item.sub.active { background: transparent; color: #ffffff; font-weight: 600; }
 
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .topbar {
