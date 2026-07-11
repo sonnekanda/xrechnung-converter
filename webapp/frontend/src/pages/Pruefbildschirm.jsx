@@ -257,14 +257,25 @@ export default function Pruefbildschirm() {
       )}
       {detail.status === "VALIDIERT" && (
         <div className="banner ok row" style={{ justifyContent: "space-between" }}>
-          <span>✓ XRechnung wurde erzeugt und amtlich validiert. Die Felder sind gesperrt;
-            zum Ändern die Rechnung wieder freigeben (die erzeugte XRechnung wird dann
-            verworfen und muss neu erstellt werden).</span>
-          <button className="secondary" onClick={reopen}>Daten ändern</button>
+          <span>✓ XRechnung geprüft und amtlich validiert – bereit zum Herunterladen.
+            Mit dem Herunterladen wird die Rechnung schreibgeschützt; zum Ändern
+            vorher „Daten ändern“ wählen (die erzeugte XRechnung wird dann verworfen).</span>
+          <div className="row">
+            <button onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
+              XRechnung herunterladen
+            </button>
+            <button className="secondary" onClick={reopen}>Daten ändern</button>
+          </div>
         </div>
       )}
       {detail.status === "EXPORTIERT" && (
-        <div className="banner ok">Diese Rechnung wurde bereits exportiert und ist schreibgeschützt.</div>
+        <div className="banner ok row" style={{ justifyContent: "space-between" }}>
+          <span>Diese Rechnung wurde exportiert und ist schreibgeschützt.</span>
+          <button className="secondary"
+                  onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
+            Erneut herunterladen
+          </button>
+        </div>
       )}
       {genMsg && !genMsg.ok && (
         <div className="banner err">
@@ -333,18 +344,13 @@ export default function Pruefbildschirm() {
             </span>
             <div className="row">
               {validiert && (
-                <>
-                  <button className="secondary" onClick={() => setZeigeBericht(true)}>
-                    Validierungsbericht
-                  </button>
-                  <button onClick={() => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`)}>
-                    XRechnung herunterladen
-                  </button>
-                </>
+                <button className="secondary" onClick={() => setZeigeBericht(true)}>
+                  Validierungsbericht
+                </button>
               )}
               {!validiert && (
                 <button onClick={generate} disabled={busy}>
-                  {busy ? "Wird erzeugt…" : "XRechnung erzeugen"}
+                  {busy ? "Wird geprüft…" : "XRechnung prüfen"}
                 </button>
               )}
             </div>
