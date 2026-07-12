@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 
@@ -38,6 +39,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> tooLarge(MaxUploadSizeExceededException ex) {
         return build(HttpStatus.PAYLOAD_TOO_LARGE,
                 "Die Datei ist zu gross. Bitte bleiben Sie unter dem erlaubten Limit.");
+    }
+
+    /**
+     * Nicht vorhandene statische Ressource (z.B. /favicon.ico ohne Datei):
+     * ein normales 404 - kein "unerwarteter Fehler", kein Stacktrace im Log
+     * und vor allem kein 500 an den Client.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> staticNotFound(NoResourceFoundException ex) {
+        log.debug("Statische Ressource nicht gefunden: {}", ex.getResourcePath());
+        return build(HttpStatus.NOT_FOUND, "Die angeforderte Ressource wurde nicht gefunden.");
     }
 
     @ExceptionHandler(Exception.class)
