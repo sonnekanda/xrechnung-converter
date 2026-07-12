@@ -149,7 +149,8 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
    sich, die Rechnungsnummer ist begrenzt. Beide brechen bei Bedarf in der Zelle
    um. Auf schmalen Fenstern scrollt der Wrapper horizontal statt zu quetschen. */
 .table-scroll { overflow-x: auto; }
-table.uebersicht { table-layout: fixed; min-width: 1180px; }
+table.uebersicht { table-layout: fixed; min-width: 1110px; }
+table.uebersicht tr.klickbar { cursor: pointer; }
 table.uebersicht td.col-wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 table.uebersicht td.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.uebersicht td.aktionen { flex-wrap: wrap; row-gap: 6px; }

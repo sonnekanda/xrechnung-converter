@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth.jsx";
 import ReportModal from "../components/ReportModal";
@@ -64,6 +64,7 @@ function deBetrag(wert) {
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [firmaHinweis, setFirmaHinweis] = useState(false);
   const [hinweisZu, setHinweisZu] = useState(false);
@@ -235,7 +236,7 @@ export default function Dashboard() {
             <col style={{ width: 150 }} />{/* Summe */}
             <col style={{ width: 128 }} />{/* Dateien */}
             <col style={{ width: 138 }} />{/* Status */}
-            <col style={{ width: 304 }} />{/* Aktionen */}
+            <col style={{ width: 230 }} />{/* Ergebnisse */}
           </colgroup>
           <thead>
             <tr>
@@ -248,14 +249,17 @@ export default function Dashboard() {
               <Th label="Summe" k="bruttobetrag" align="right" />
               <th>Dateien</th>
               <Th label="Status" k="status" />
-              <th>Aktionen</th>
+              <th>Ergebnisse</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((i) => (
-              <tr key={i.id} className={selected.has(i.id) ? "selected" : ""}>
-                <td><input type="checkbox" checked={selected.has(i.id)}
-                           onChange={() => toggleOne(i.id)} /></td>
+              <tr key={i.id} className={`klickbar ${selected.has(i.id) ? "selected" : ""}`}
+                  onClick={() => navigate(`/pruefen/${i.id}`)} title="Rechnung öffnen">
+                {/* Auswahl-Spalte: Klick darf die Zeile nicht öffnen. */}
+                <td onClick={(e) => e.stopPropagation()}>
+                  <input type="checkbox" checked={selected.has(i.id)} onChange={() => toggleOne(i.id)} />
+                </td>
                 <td><span className={`ampel ${ampelFor(i)}`} /></td>
                 <td className="col-wrap">
                   <strong>{i.rechnungsnummer || "—"}</strong>
@@ -272,13 +276,10 @@ export default function Dashboard() {
                   {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
                 <td className="nowrap"><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
-                <td className="row aktionen" style={{ gap: 6 }}>
-                  {["PRUEFEN", "IN_VERARBEITUNG", "HOCHGELADEN"].includes(i.status) && (
-                    <Link to={`/pruefen/${i.id}`}><button className="secondary small">Prüfen</button></Link>
-                  )}
+                {/* Ergebnisse: Downloads/Bericht – Klicks bleiben in der Zelle. */}
+                <td className="row aktionen" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   {["VALIDIERT", "EXPORTIERT"].includes(i.status) && (
                     <>
-                      <Link to={`/pruefen/${i.id}`}><button className="secondary small">Ansehen</button></Link>
                       <button className="small" onClick={() => download(i)}>XML</button>
                       {i.pdfFilename && (
                         <button className="secondary small" title="ZUGFeRD-PDF (XRechnung im Original-PDF) herunterladen"
