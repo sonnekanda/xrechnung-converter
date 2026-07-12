@@ -224,17 +224,18 @@ export default function Dashboard() {
       {sorted.length === 0 ? (
         <p className="muted">Keine Rechnungen im gewählten Zeitraum.</p>
       ) : (
+        <div className="table-scroll">
         <table className="uebersicht">
           <colgroup>
-            <col style={{ width: 36 }} />{/* Auswahl */}
+            <col style={{ width: 34 }} />{/* Auswahl */}
             <col style={{ width: 26 }} />{/* Ampel */}
-            <col />{/* Rechnung – dehnbar */}
+            <col style={{ width: 120 }} />{/* Rechnung – begrenzt, bricht bei Bedarf um */}
             <col style={{ width: 138 }} />{/* Rechnungsdatum */}
             <col />{/* Käufer – dehnbar */}
             <col style={{ width: 150 }} />{/* Summe */}
-            <col style={{ width: 108 }} />{/* Dateien */}
-            <col style={{ width: 128 }} />{/* Status */}
-            <col style={{ width: 220 }} />{/* Aktionen */}
+            <col style={{ width: 128 }} />{/* Dateien */}
+            <col style={{ width: 138 }} />{/* Status */}
+            <col style={{ width: 304 }} />{/* Aktionen */}
           </colgroup>
           <thead>
             <tr>
@@ -292,6 +293,7 @@ export default function Dashboard() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {bericht && <ReportModal invoice={bericht} onClose={() => setBericht(null)} />}

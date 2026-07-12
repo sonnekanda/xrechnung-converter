@@ -145,9 +145,11 @@ tbody tr:hover { background: #eef4ff; }
 tbody tr.selected { background: #e3ecfe; }
 td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: pointer; }
 
-/* Übersichtstabelle: feste Spaltenbreiten via colgroup; nur Rechnung + Käufer
-   dehnen sich und brechen bei Bedarf innerhalb der Zelle um. */
-table.uebersicht { table-layout: fixed; }
+/* Übersichtstabelle: feste Spaltenbreiten via colgroup; nur der Käufer dehnt
+   sich, die Rechnungsnummer ist begrenzt. Beide brechen bei Bedarf in der Zelle
+   um. Auf schmalen Fenstern scrollt der Wrapper horizontal statt zu quetschen. */
+.table-scroll { overflow-x: auto; }
+table.uebersicht { table-layout: fixed; min-width: 1180px; }
 table.uebersicht td.col-wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 table.uebersicht td.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.uebersicht td.aktionen { flex-wrap: wrap; row-gap: 6px; }
