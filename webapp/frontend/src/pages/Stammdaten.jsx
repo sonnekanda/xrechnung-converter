@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
 
 const EMPTY = { name: "", ustId: "", kundennummer: "", leitwegId: "", strasse: "", plz: "", ort: "", land: "DE", email: "", zahlungsbedingungen: "" };
@@ -17,6 +17,7 @@ export default function Stammdaten() {
   const [selected, setSelected] = useState(() => new Set());
   const [modal, setModal] = useState(null); // { isNew, data } oder null
   const [error, setError] = useState(null);
+  const suchRef = useRef(null);
 
   const load = () => api.stammdaten().then(setRows).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
@@ -81,8 +82,15 @@ export default function Stammdaten() {
       <div className="toolbar">
         <div className="field" style={{ flex: 1, minWidth: 220 }}>
           <label>Suchen</label>
-          <input value={q} onChange={(e) => setQ(e.target.value)}
-                 placeholder="Name, USt-IdNr, Kundennr., Ort …" />
+          <div className="such-feld">
+            <input ref={suchRef} value={q} onChange={(e) => setQ(e.target.value)}
+                   placeholder="Name, USt-IdNr, Kundennr., Ort …" />
+            {q && (
+              <button type="button" className="such-clear" title="Filter zurücksetzen"
+                      aria-label="Filter zurücksetzen"
+                      onClick={() => { setQ(""); suchRef.current?.focus(); }}>✕</button>
+            )}
+          </div>
         </div>
         {selected.size > 0 && (
           <button className="danger small" onClick={bulkDelete}>🗑 {selected.size} löschen</button>

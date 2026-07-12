@@ -160,6 +160,16 @@ tr.klickbar { cursor: pointer; }
 }
 .table-scroll-v table { border-collapse: separate; border-spacing: 0; }
 table.stammdaten { min-width: 960px; }
+
+/* Suchfeld mit Zurücksetzen-Kreuz innerhalb des Feldes (erscheint nur bei Text). */
+.such-feld { position: relative; }
+.such-feld input { width: 100%; padding-right: 30px; }
+.such-clear {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  background: transparent; color: var(--muted); border: none;
+  padding: 2px 6px; font-size: 13px; line-height: 1; border-radius: 6px; font-weight: 700;
+}
+.such-clear:hover { color: var(--ink); background: #eef1f7; }
 table.uebersicht td.col-wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 table.uebersicht td.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.uebersicht td.aktionen { flex-wrap: wrap; row-gap: 6px; }
