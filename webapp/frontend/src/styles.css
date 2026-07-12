@@ -83,6 +83,11 @@ input, select {
   background: var(--brand); flex: 0 0 auto;
   display: grid; place-items: center; color: #fff; font-size: 15px;
 }
+/* Konfiguriertes Logo (BRAND_LOGO_PATH): Bild statt Buchstaben-Avatar. */
+img.logo {
+  width: 28px; height: 28px; border-radius: 7px; object-fit: contain;
+  background: #fff; flex: 0 0 auto;
+}
 .nav-item {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; border-radius: 8px; color: #cdd6e5;

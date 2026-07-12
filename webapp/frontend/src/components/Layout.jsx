@@ -77,7 +77,9 @@ export default function Layout() {
           {expanded ? "‹" : "›"}
         </button>
         <div className="brand">
-          <span className="logo">{(branding.name || "s")[0].toUpperCase()}</span>
+          {branding.logoUrl
+            ? <img className="logo" src={branding.logoUrl} alt={branding.name} />
+            : <span className="logo">{(branding.name || "s")[0].toUpperCase()}</span>}
           {expanded && <span>{branding.name}</span>}
         </div>
         {items.map((it) => (

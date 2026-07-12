@@ -53,6 +53,7 @@ erechnung:
     name: ${BRAND_NAME:senapsa}
     product-title: ${BRAND_PRODUCT_TITLE:eRechnung-Konverter}
     primary-color: ${BRAND_PRIMARY_COLOR:#0B5FFF}
+    logo-path: ${BRAND_LOGO_PATH:}
   license:
     enforcement: ${LICENSE_ENFORCEMENT:false}
     controller-url: ${LICENSE_CONTROLLER_URL:}

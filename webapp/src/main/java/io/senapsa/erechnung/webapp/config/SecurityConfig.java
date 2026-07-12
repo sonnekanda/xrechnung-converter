@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Oeffentlich: Login, Branding, Health, API-Doku.
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/branding").permitAll()
+                        .requestMatchers("/api/v1/auth/**", "/api/v1/branding", "/api/v1/branding/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Geschuetzte API: Stammdaten/Administration nur ADMIN, restliche API angemeldet.

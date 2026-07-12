@@ -29,7 +29,9 @@ export default function Login() {
     <div className="login-wrap">
       <form className="panel login-card" onSubmit={submit}>
         <div className="brand" style={{ padding: 0, marginBottom: 16, color: "var(--ink)" }}>
-          <span className="logo">{(branding.name || "s")[0].toUpperCase()}</span>
+          {branding.logoUrl
+            ? <img className="logo" src={branding.logoUrl} alt={branding.name} />
+            : <span className="logo">{(branding.name || "s")[0].toUpperCase()}</span>}
           <span style={{ fontSize: 20, fontWeight: 700 }}>{branding.name}</span>
         </div>
         <h2 style={{ marginTop: 0 }}>Anmeldung</h2>

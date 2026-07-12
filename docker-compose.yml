@@ -44,6 +44,7 @@ services:
       BRAND_NAME: ${BRAND_NAME:-senapsa}
       BRAND_PRODUCT_TITLE: ${BRAND_PRODUCT_TITLE:-eRechnung-Konverter}
       BRAND_PRIMARY_COLOR: ${BRAND_PRIMARY_COLOR:-#0B5FFF}
+      BRAND_LOGO_PATH: ${BRAND_LOGO_PATH:-}
       # Ordner-Automatik (Watch-Folder, optional "Kann")
       WATCH_ENABLED: ${WATCH_ENABLED:-false}
       WATCH_INPUT_DIR: ${WATCH_INPUT_DIR:-/data/watch/in}
