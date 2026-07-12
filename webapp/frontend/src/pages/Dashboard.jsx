@@ -115,6 +115,10 @@ export default function Dashboard() {
         const n = Number(i.rechnungsnummer);
         return Number.isNaN(n) ? (i.rechnungsnummer || "") : n;
       }
+      if (sort.key === "kaeuferName") return (i.kaeuferName || "").toLowerCase();
+      if (sort.key === "bruttobetrag") {
+        return i.bruttobetrag == null || i.bruttobetrag === "" ? null : Number(i.bruttobetrag);
+      }
       return i[sort.key]; // rechnungsdatum (ISO), createdAt
     };
     const arr = [...invoices];
@@ -157,8 +161,8 @@ export default function Dashboard() {
     setSelected(allSelected ? new Set() : new Set(sorted.map((i) => i.id)));
   }
 
-  const Th = ({ label, k }) => (
-    <th className="sortable" onClick={() => toggleSort(k)}>
+  const Th = ({ label, k, align }) => (
+    <th className="sortable" style={align ? { textAlign: align } : undefined} onClick={() => toggleSort(k)}>
       {label}{sort.key === k && <span className="sort-arrow">{sort.dir === "asc" ? "▲" : "▼"}</span>}
     </th>
   );
@@ -220,7 +224,18 @@ export default function Dashboard() {
       {sorted.length === 0 ? (
         <p className="muted">Keine Rechnungen im gewählten Zeitraum.</p>
       ) : (
-        <table>
+        <table className="uebersicht">
+          <colgroup>
+            <col style={{ width: 36 }} />{/* Auswahl */}
+            <col style={{ width: 26 }} />{/* Ampel */}
+            <col />{/* Rechnung – dehnbar */}
+            <col style={{ width: 138 }} />{/* Rechnungsdatum */}
+            <col />{/* Käufer – dehnbar */}
+            <col style={{ width: 150 }} />{/* Summe */}
+            <col style={{ width: 108 }} />{/* Dateien */}
+            <col style={{ width: 128 }} />{/* Status */}
+            <col style={{ width: 220 }} />{/* Aktionen */}
+          </colgroup>
           <thead>
             <tr>
               <th><input type="checkbox" checked={allSelected} onChange={toggleAll}
@@ -228,8 +243,8 @@ export default function Dashboard() {
               <th></th>
               <Th label="Rechnung" k="rechnungsnummer" />
               <Th label="Rechnungsdatum" k="rechnungsdatum" />
-              <th>Käufer</th>
-              <th style={{ textAlign: "right" }}>Summe</th>
+              <Th label="Käufer" k="kaeuferName" />
+              <Th label="Summe" k="bruttobetrag" align="right" />
               <th>Dateien</th>
               <Th label="Status" k="status" />
               <th>Aktionen</th>
@@ -241,22 +256,22 @@ export default function Dashboard() {
                 <td><input type="checkbox" checked={selected.has(i.id)}
                            onChange={() => toggleOne(i.id)} /></td>
                 <td><span className={`ampel ${ampelFor(i)}`} /></td>
-                <td>
+                <td className="col-wrap">
                   <strong>{i.rechnungsnummer || "—"}</strong>
                   {i.dokumentart && i.dokumentart !== "rechnung" && (
                     <div className="muted">{i.dokumentart}</div>
                   )}
                 </td>
-                <td>{deDatum(i.rechnungsdatum)}</td>
-                <td>{i.kaeuferName || "—"}</td>
-                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{deBetrag(i.bruttobetrag)}</td>
+                <td className="nowrap">{deDatum(i.rechnungsdatum)}</td>
+                <td className="col-wrap">{i.kaeuferName || "—"}</td>
+                <td className="nowrap" style={{ textAlign: "right" }}>{deBetrag(i.bruttobetrag)}</td>
                 <td className="muted">
                   {i.pdfFilename && <div>PDF{i.needsOcr ? " (OCR nötig)" : ""}</div>}
                   {i.csvFilename && <div>CSV</div>}
                   {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
-                <td><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
-                <td className="row" style={{ gap: 6 }}>
+                <td className="nowrap"><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
+                <td className="row aktionen" style={{ gap: 6 }}>
                   {["PRUEFEN", "IN_VERARBEITUNG", "HOCHGELADEN"].includes(i.status) && (
                     <Link to={`/pruefen/${i.id}`}><button className="secondary small">Prüfen</button></Link>
                   )}
