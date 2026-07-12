@@ -47,6 +47,10 @@ const KAEUFER_FELDER = [
 // Rechnungsbezogene Kopffelder (weder Verkäufer noch Käufer), in Anzeigereihenfolge.
 const KOPF_FELDER = ["rechnungsnummer", "rechnungsdatum", "faelligkeit", "waehrung", "leitweg_id"];
 
+// Titel-Verb je Status, damit die Kopfzeile den tatsächlichen Zustand zeigt
+// (nicht mehr pauschal „Prüfen").
+const STATUS_VERB = { PRUEFEN: "Prüfen", VALIDIERT: "Geprüft", EXPORTIERT: "Exportiert" };
+
 function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
@@ -305,7 +309,10 @@ export default function Pruefbildschirm() {
       {/* Feste Aktionsleiste: bleibt beim Scrollen oben; Tasten je nach Status aktiv. */}
       <div className="action-bar">
         <Link to="/" className="icon-back" title="Zurück zur Übersicht" aria-label="Zurück zur Übersicht">←</Link>
-        <h2 className="action-title">Prüfen: Rechnung {kopf.rechnungsnummer?.wert || detail.id.slice(0, 8)}</h2>
+        <h2 className="action-title">
+          {STATUS_VERB[detail.status] ? `${STATUS_VERB[detail.status]}: ` : ""}
+          Rechnung {kopf.rechnungsnummer?.wert || detail.id.slice(0, 8)}
+        </h2>
         <div className="spacer" />
         <button className="small" onClick={generate} disabled={validiert || busy}
                 title="Amtlich prüfen (Mustangproject + KoSIT)">
