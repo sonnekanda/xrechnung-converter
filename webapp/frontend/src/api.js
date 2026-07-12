@@ -69,6 +69,7 @@ export const api = {
   createUser: (u) => request("POST", "/admin/users", { body: u }),
   deleteUser: (id) => request("DELETE", `/admin/users/${id}`),
   settings: () => request("GET", "/admin/settings"),
+  protokoll: () => request("GET", "/admin/protokoll"),
   watchSettings: () => request("GET", "/admin/ordner-automatik"),
   saveWatchSettings: (s) => request("PUT", "/admin/ordner-automatik", { body: s }),
   setNav: (expanded) => request("PATCH", "/me/nav", { body: { expanded } }),

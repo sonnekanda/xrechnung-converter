@@ -10,6 +10,7 @@ import Firma from "./pages/Firma.jsx";
 import Benutzer from "./pages/Benutzer.jsx";
 import Einstellungen from "./pages/Einstellungen.jsx";
 import OrdnerAutomatik from "./pages/OrdnerAutomatik.jsx";
+import Protokoll from "./pages/Protokoll.jsx";
 
 function Protected({ children, adminOnly }) {
   const { user, isAdmin } = useAuth();
@@ -63,6 +64,14 @@ export default function App() {
           element={
             <Protected adminOnly>
               <OrdnerAutomatik />
+            </Protected>
+          }
+        />
+        <Route
+          path="protokoll"
+          element={
+            <Protected adminOnly>
+              <Protokoll />
             </Protected>
           }
         />

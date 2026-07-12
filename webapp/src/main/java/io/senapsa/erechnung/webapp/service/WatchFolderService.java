@@ -139,7 +139,12 @@ public class WatchFolderService {
             byte[] csv = csvName != null ? Files.readAllBytes(input.resolve(csvName)) : null;
             String hash = sha256(pdf, csv);
             if (processed.existsByContentHash(hash)) {
-                move(input, input.resolve(".done"), base); // erneut abgelegtes Duplikat räumen
+                // Erneut abgelegtes Duplikat: räumen, aber sichtbar machen (Log + Audit).
+                log.info("Ordner-Automatik: '{}' bereits verarbeitet (identischer Inhalt) - nicht erneut eingelesen, nach .done verschoben", base);
+                audit.logSecurity("ORDNER_DUPLIKAT",
+                        "'" + base + "' bereits verarbeitet (identischer Inhalt) - nicht erneut eingelesen, nach .done verschoben",
+                        "ordner-automatik");
+                move(input, input.resolve(".done"), base);
                 return;
             }
             processed.save(new WatchProcessed(hash, base));

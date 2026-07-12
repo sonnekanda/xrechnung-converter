@@ -56,6 +56,7 @@ export default function Layout() {
     { to: "/firma", ico: "☗", label: "Eigene Firma" },
     { to: "/benutzer", ico: "☺", label: "Benutzer" },
     { to: "/ordner-automatik", ico: "📂", label: "Ordner-Automatik" },
+    { to: "/protokoll", ico: "≡", label: "Protokoll" },
     { to: "/einstellungen", ico: "⚙", label: "Konfiguration" },
   ] : [];
 

@@ -204,7 +204,7 @@ Optionale Automatik („Kann", A-16): Eingangsordner aus dem alten Abas-ERP wird
   - *User Story:* Als Buchhaltungsmitarbeiter möchte ich fertige XRechnungen automatisch im Ausgangsordner finden, damit vollständig korrekte Rechnungen ohne mein Zutun bereitstehen.
   - *Akzeptanzkriterien:* Nur vollständig validierte Rechnungen werden automatisch als XRechnung-UBL (optional ZUGFeRD) samt Bericht abgelegt. Unsichere Fälle → Prüfbildschirm; Exportsperre gilt unverändert.
 
-- [x] **Ablage & Doppelverarbeitungsschutz** `Kann` `A-16, K-11, K-10`  *(✅ .processing/.done/.error, Inhalts-Hash-Dedup; Vermerk wird beim Löschen der Rechnung freigegeben)*
+- [x] **Ablage & Doppelverarbeitungsschutz** `Kann` `A-16, K-11, K-10`  *(✅ .processing/.done/.error, Inhalts-Hash-Dedup; Duplikat-Übersprung wird geloggt + auditiert (ORDNER_DUPLIKAT); Vermerk wird beim Löschen freigegeben; Audit-Log einsehbar unter Einstellungen → Protokoll)*
   - *User Story:* Als Betreiber möchte ich, dass verarbeitete Eingangsdateien als erledigt bzw. fehlerhaft abgelegt werden, damit nichts doppelt verarbeitet wird oder verloren geht.
   - *Akzeptanzkriterien:* Verarbeitete Dateien im Eingangsordner als erledigt/fehlerhaft abgelegt. Erneute Ablage identischer Dateien führt nicht zu Doppelverarbeitung. Alle Schritte im Audit-Log.
 

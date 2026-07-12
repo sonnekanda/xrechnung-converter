@@ -76,6 +76,11 @@ public class InvoiceService {
     public void delete(UUID id) {
         Invoice invoice = get(id); // 404, falls nicht vorhanden
         audit.deleteForInvoice(id);
+        // Rechnungs-unabhängiger Eintrag (invoiceId=null), damit das Löschen selbst
+        // nachvollziehbar bleibt, obwohl das Audit der Rechnung mit entfernt wird.
+        audit.log(null, "RECHNUNG_GELOESCHT",
+                (invoice.getRechnungsnummer() != null ? "Rechnung " + invoice.getRechnungsnummer() : "Rechnung ohne Nummer")
+                        + " (" + id + ", Quelle " + invoice.getSource() + ") samt Dateien und Verlauf gelöscht");
         // Doppelverarbeitungs-Vermerk der Ordner-Automatik freigeben, damit
         // dieselbe Datei nach dem Löschen wieder eingelesen werden kann.
         if (invoice.getWatchBasename() != null) {

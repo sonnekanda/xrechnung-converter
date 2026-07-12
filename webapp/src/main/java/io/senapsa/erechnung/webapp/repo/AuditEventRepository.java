@@ -9,5 +9,8 @@ import java.util.UUID;
 public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> {
     List<AuditEvent> findAllByInvoiceIdOrderByCreatedAtAsc(UUID invoiceId);
 
+    /** Jüngste Einträge für die Protokoll-Ansicht im Admin-Bereich. */
+    List<AuditEvent> findTop200ByOrderByCreatedAtDesc();
+
     void deleteAllByInvoiceId(UUID invoiceId);
 }
