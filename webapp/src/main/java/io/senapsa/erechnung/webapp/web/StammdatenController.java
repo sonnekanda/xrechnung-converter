@@ -53,6 +53,22 @@ public class StammdatenController {
     public Recipient update(@PathVariable UUID id, @RequestBody Recipient input) {
         Recipient existing = recipients.findById(id)
                 .orElseThrow(() -> new ApiExceptions.NotFound("Stammdatensatz wurde nicht gefunden."));
+        // Eindeutigkeit des Zuordnungsschlüssels sichern – aber die eigene Zeile
+        // ausnehmen, damit ein Speichern ohne Schlüsseländerung nicht blockiert.
+        String ustId = input.getUstId();
+        if (ustId != null && !ustId.isBlank()) {
+            recipients.findFirstByUstId(ustId)
+                    .filter(other -> !other.getId().equals(id))
+                    .ifPresent(other -> { throw new ApiExceptions.Conflict(
+                            "Ein anderer Empfänger mit dieser USt-IdNr ist bereits vorhanden."); });
+        }
+        String kundennummer = input.getKundennummer();
+        if (kundennummer != null && !kundennummer.isBlank()) {
+            recipients.findFirstByKundennummer(kundennummer)
+                    .filter(other -> !other.getId().equals(id))
+                    .ifPresent(other -> { throw new ApiExceptions.Conflict(
+                            "Ein anderer Empfänger mit dieser Kundennummer ist bereits vorhanden."); });
+        }
         existing.setName(input.getName());
         existing.setUstId(input.getUstId());
         existing.setKundennummer(input.getKundennummer());
