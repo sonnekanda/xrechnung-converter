@@ -53,6 +53,7 @@ export const api = {
   generate: (id) => request("POST", `/invoices/${id}/generate`),
   reportSummary: (id) => request("GET", `/invoices/${id}/validation-report/summary`),
   reopen: (id) => request("POST", `/invoices/${id}/reopen`),
+  applyCompany: (id) => request("POST", `/invoices/${id}/verkaeufer-uebernehmen`),
   deleteInvoice: (id) => request("DELETE", `/invoices/${id}`),
   status: (id) => request("GET", `/files/${id}/status`),
   stammdaten: () => request("GET", "/stammdaten"),

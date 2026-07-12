@@ -31,13 +31,14 @@ public class InvoiceService {
     private final FachpruefungService fachpruefung;
     private final GenerationService generation;
     private final AuditService audit;
+    private final StammdatenAutofillService autofill;
     private final io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed;
     private final WatchFolderService watchFolder;
     private final Path uploadsDir;
 
     public InvoiceService(InvoiceRepository invoices, ModelJson modelJson,
                           FachpruefungService fachpruefung, GenerationService generation,
-                          AuditService audit,
+                          AuditService audit, StammdatenAutofillService autofill,
                           io.senapsa.erechnung.webapp.repo.WatchProcessedRepository watchProcessed,
                           @org.springframework.context.annotation.Lazy WatchFolderService watchFolder,
                           @Value("${erechnung.data-dir:/data}") String dataDir) {
@@ -46,6 +47,7 @@ public class InvoiceService {
         this.fachpruefung = fachpruefung;
         this.generation = generation;
         this.audit = audit;
+        this.autofill = autofill;
         this.watchProcessed = watchProcessed;
         this.watchFolder = watchFolder;
         this.uploadsDir = Path.of(dataDir, "uploads");
@@ -206,6 +208,42 @@ public class InvoiceService {
         invoice.touch();
         String pos = positionIndex != null ? "[" + (positionIndex + 1) + "]" : "";
         audit.log(id, "FELD_KORRIGIERT", block + pos + "." + field + " = " + wert);
+        return invoices.save(invoice);
+    }
+
+    /**
+     * Uebernimmt die aktuellen Firmendaten (eigene Firma) in die Verkaeufer-Felder
+     * der Rechnung und ueberschreibt dabei vorhandene Werte. Fuer Rechnungen, die
+     * vor dem Pflegen der eigenen Firma hochgeladen wurden. Wie eine Feldkorrektur
+     * verwirft dies eine bereits erzeugte XRechnung (VALIDIERT -> PRUEFEN).
+     */
+    @Transactional
+    public Invoice uebernehmeFirma(UUID id) {
+        Invoice invoice = get(id);
+        if (invoice.getStatus() == InvoiceStatus.EXPORTIERT) {
+            throw new ApiExceptions.Conflict(
+                    "Diese Rechnung wurde bereits exportiert und kann nicht mehr geaendert werden.");
+        }
+        if (invoice.getStatus() != InvoiceStatus.PRUEFEN && invoice.getStatus() != InvoiceStatus.VALIDIERT) {
+            throw new ApiExceptions.Conflict("In diesem Bearbeitungsschritt ist die Aenderung nicht moeglich.");
+        }
+        ObjectNode model = modelJson.parse(invoice.getModelJson());
+        int changed = autofill.refreshCompany(model);
+        if (changed == 0) {
+            throw new ApiExceptions.Conflict(
+                    "Es sind noch keine Firmendaten hinterlegt. Bitte zuerst unter Stammdaten → Eigene Firma pflegen.");
+        }
+        invoice.setModelJson(modelJson.write(model));
+        if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
+            invoice.setStatus(InvoiceStatus.PRUEFEN);
+            invoice.setValid(false);
+            invoice.setUblXmlBase64(null);
+            invoice.setValidationReport(null);
+            audit.log(id, "AENDERUNG_NACH_VALIDIERUNG",
+                    "Erzeugte XRechnung verworfen - erneute Erzeugung erforderlich");
+        }
+        invoice.touch();
+        audit.log(id, "FIRMA_UEBERNOMMEN", changed + " Verkaeufer-Felder aus eigener Firma uebernommen");
         return invoices.save(invoice);
     }
 

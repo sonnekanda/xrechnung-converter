@@ -51,6 +51,7 @@ class InvoiceServiceTest {
     @Mock FachpruefungService fachpruefung;
     @Mock GenerationService generation;
     @Mock AuditService audit;
+    @Mock StammdatenAutofillService autofill;
     @Mock WatchProcessedRepository watchProcessed;
     @Mock WatchFolderService watchFolder;
 
@@ -62,7 +63,7 @@ class InvoiceServiceTest {
     @BeforeEach
     void setUp() {
         service = new InvoiceService(invoices, new ModelJson(new ObjectMapper()),
-                fachpruefung, generation, audit, watchProcessed, watchFolder,
+                fachpruefung, generation, audit, autofill, watchProcessed, watchFolder,
                 dataDir.toString());
         lenient().when(invoices.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -257,6 +258,51 @@ class InvoiceServiceTest {
             service.reopen(id);
             assertThat(inv.getStatus()).isEqualTo(InvoiceStatus.PRUEFEN);
             verify(invoices, never()).save(any());
+        }
+    }
+
+    // --- Firmendaten übernehmen (Verkäufer aus eigener Firma) ------------------
+
+    @Nested
+    class UebernehmeFirma {
+
+        @Test
+        void ohne_gepflegte_firma_409() {
+            invoice(InvoiceStatus.PRUEFEN);
+            when(autofill.refreshCompany(any())).thenReturn(0); // keine Firmendaten
+            assertThatThrownBy(() -> service.uebernehmeFirma(id))
+                    .isInstanceOf(ApiExceptions.Conflict.class);
+            verify(invoices, never()).save(any());
+        }
+
+        @Test
+        void uebernimmt_in_pruefen_und_speichert() {
+            Invoice inv = invoice(InvoiceStatus.PRUEFEN);
+            when(autofill.refreshCompany(any())).thenReturn(11);
+            service.uebernehmeFirma(id);
+            assertThat(inv.getStatus()).isEqualTo(InvoiceStatus.PRUEFEN);
+            verify(invoices).save(inv);
+            verify(audit).log(eq(id), eq("FIRMA_UEBERNOMMEN"), anyString());
+        }
+
+        @Test
+        void uebernahme_nach_validierung_verwirft_xml() {
+            Invoice inv = invoice(InvoiceStatus.VALIDIERT);
+            inv.setUblXmlBase64("xml");
+            inv.setValid(true);
+            when(autofill.refreshCompany(any())).thenReturn(11);
+            service.uebernehmeFirma(id);
+            assertThat(inv.getStatus()).isEqualTo(InvoiceStatus.PRUEFEN);
+            assertThat(inv.getUblXmlBase64()).isNull();
+            assertThat(inv.isValid()).isFalse();
+        }
+
+        @Test
+        void exportierte_rechnung_gesperrt() {
+            invoice(InvoiceStatus.EXPORTIERT);
+            assertThatThrownBy(() -> service.uebernehmeFirma(id))
+                    .isInstanceOf(ApiExceptions.Conflict.class);
+            verifyNoInteractions(autofill);
         }
     }
 

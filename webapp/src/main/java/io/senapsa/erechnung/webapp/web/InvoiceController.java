@@ -82,6 +82,12 @@ public class InvoiceController {
         return toDetail(invoiceService.reopen(id));
     }
 
+    /** Übernimmt die aktuellen Firmendaten in die Verkäufer-Felder der Rechnung. */
+    @PostMapping("/{id}/verkaeufer-uebernehmen")
+    public InvoiceDtos.InvoiceDetail uebernehmeFirma(@PathVariable UUID id) {
+        return toDetail(invoiceService.uebernehmeFirma(id));
+    }
+
     /** Export der validierten XRechnung (UBL). 409, wenn nicht validiert. */
     @GetMapping("/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable UUID id) {

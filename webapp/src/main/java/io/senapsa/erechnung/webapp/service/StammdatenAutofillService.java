@@ -35,6 +35,42 @@ public class StammdatenAutofillService {
         return applyRecipient(model);
     }
 
+    /**
+     * Uebernimmt die aktuellen Firmendaten in die Verkaeufer-Felder – anders als
+     * {@link #apply} werden vorhandene Werte dabei ueberschrieben. Fuer den Knopf
+     * „Aus eigener Firma uebernehmen" im Pruefbildschirm (z.B. Rechnungen, die vor
+     * dem Pflegen der eigenen Firma hochgeladen wurden). Liefert die Zahl der
+     * gesetzten Felder; 0, wenn keine Firma gepflegt ist.
+     */
+    public int refreshCompany(ObjectNode model) {
+        CompanyProfile c = companyProfile.find().orElse(null);
+        if (c == null) {
+            return 0;
+        }
+        int n = 0;
+        n += overwrite(model, "verkaeufer_name", c.getName());
+        n += overwrite(model, "verkaeufer_strasse", c.getStrasse());
+        n += overwrite(model, "verkaeufer_plz", c.getPlz());
+        n += overwrite(model, "verkaeufer_ort", c.getOrt());
+        n += overwrite(model, "verkaeufer_land", c.getLand());
+        n += overwrite(model, "verkaeufer_ustid", c.getUstId());
+        n += overwrite(model, "verkaeufer_steuernummer", c.getSteuernummer());
+        n += overwrite(model, "verkaeufer_kontakt_name", c.getKontaktName());
+        n += overwrite(model, "verkaeufer_email", c.getEmail());
+        n += overwrite(model, "verkaeufer_telefon", c.getTelefon());
+        n += overwrite(model, "bankverbindung_iban", c.getIban());
+        n += overwrite(model, "bankverbindung_bic", c.getBic());
+        return n;
+    }
+
+    private int overwrite(ObjectNode model, String field, String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        modelJson.set(model, "kopf", field, value, "stammdaten", "sicher");
+        return 1;
+    }
+
     /** Verkaeufer/Zahlungsweg aus der eigenen Firma. */
     private void applyCompany(ObjectNode model) {
         CompanyProfile c = companyProfile.find().orElse(null);

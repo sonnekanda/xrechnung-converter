@@ -215,6 +215,21 @@ button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
 .hinweis { flex-basis: 100%; color: var(--rot); font-size: 12px; margin: 0 0 0 200px; }
 .section-title { margin: 18px 0 6px; font-weight: 700; }
 
+/* Einklappbarer Abschnitt (z.B. Verkäufer/eigene Firma). */
+.collapse-box { border: 1px solid var(--line); border-radius: 10px; margin: 4px 0 8px; overflow: hidden; }
+.collapse-head {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: #f7f9fd; color: var(--ink); font-weight: 600; padding: 10px 14px; border-radius: 0;
+}
+.collapse-head:hover { background: #eef2fb; }
+.collapse-head .chev { color: var(--muted); width: 12px; flex: 0 0 auto; }
+.collapse-head .collapse-sum {
+  flex: 1; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.collapse-body { padding: 6px 14px 14px; }
+.badge-ok { flex: 0 0 auto; font-size: 12px; color: var(--gruen); background: #e3f5ea; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+.badge-warn { flex: 0 0 auto; font-size: 12px; color: #7a5c00; background: #fbf3d9; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+
 .banner { padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
 .banner.ok { background: #e3f5ea; color: var(--gruen); }
 .banner.warn { background: #fbf3d9; color: #7a5c00; }

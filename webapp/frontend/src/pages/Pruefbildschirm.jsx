@@ -31,6 +31,14 @@ const SUMMEN_LABELS = {
   steuersatz: "Steuersatz (%)",
 };
 
+// Konstante Verkäufer-Daten (aus „Eigene Firma"). Sie wiederholen sich auf jeder
+// Rechnung und werden darum in einen eigenen, standardmäßig eingeklappten
+// Abschnitt ausgelagert – die restlichen Kopfdaten sind rechnungsspezifisch.
+const VERKAEUFER_FELDER = [
+  "verkaeufer_name", "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort",
+  "verkaeufer_telefon", "verkaeufer_email", "verkaeufer_ustid", "bankverbindung_iban",
+];
+
 function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
@@ -104,6 +112,7 @@ export default function Pruefbildschirm() {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [zeigeBericht, setZeigeBericht] = useState(false);
+  const [verkaeuferAuf, setVerkaeuferAuf] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Erfolgs-Toast oben automatisch nach 3 s schließen.
@@ -173,6 +182,19 @@ export default function Pruefbildschirm() {
     }
   }
 
+  // Aktuelle Firmendaten in die Verkäufer-Felder übernehmen (überschreibend).
+  async function firmaUebernehmen() {
+    setError(null);
+    setInfo(null);
+    try {
+      setDetail(await api.applyCompany(id));
+      setGenMsg(null);
+      setToast("✓ Verkäuferdaten aus eigener Firma übernommen.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function remove() {
     if (!confirm("Diese Rechnung wirklich löschen? Datei, Daten und XML werden entfernt.")) return;
     try {
@@ -234,6 +256,16 @@ export default function Pruefbildschirm() {
   const issueByFeld = {};
   (detail.issues || []).forEach((i) => { issueByFeld[i.feld] = i.meldung; });
   const ladeXml = () => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`);
+
+  // Verkäufer-Abschnitt: offen, sobald ein Feld beanstandet oder unsicher ist –
+  // sonst eingeklappt. So bleibt die konstante Firmen­info aus dem Weg, ein
+  // Problem (z.B. fehlendes Telefon) wird aber nie versteckt.
+  const verkaeuferOffen = VERKAEUFER_FELDER.some(
+    (f) => issueByFeld[f] || (kopf[f] && kopf[f].status !== "sicher"));
+  const verkaeuferSektionAuf = verkaeuferAuf || verkaeuferOffen;
+  const verkaeuferZusammenfassung = [
+    kopf.verkaeufer_name?.wert, kopf.verkaeufer_ort?.wert, kopf.verkaeufer_ustid?.wert,
+  ].filter(Boolean).join(" · ");
 
   return (
     <div>
@@ -326,9 +358,43 @@ export default function Pruefbildschirm() {
         </div>
 
         <div className="panel">
+          {/* Verkäufer (eigene Firma): konstante Daten, standardmäßig eingeklappt. */}
+          <div className="collapse-box">
+            <button type="button" className="collapse-head"
+                    onClick={() => setVerkaeuferAuf((v) => !v)}
+                    aria-expanded={verkaeuferSektionAuf}>
+              <span className="chev">{verkaeuferSektionAuf ? "▾" : "▸"}</span>
+              <span>Verkäufer (eigene Firma)</span>
+              <span className="collapse-sum muted">{verkaeuferZusammenfassung}</span>
+              <span className={verkaeuferOffen ? "badge-warn" : "badge-ok"}>
+                {verkaeuferOffen ? "⚠ unvollständig" : "✓ aus eigener Firma"}
+              </span>
+            </button>
+            {verkaeuferSektionAuf && (
+              <div className="collapse-body">
+                {VERKAEUFER_FELDER.map((f) => (
+                  <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly}
+                            issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
+                ))}
+                {!readOnly && (
+                  <div className="mt">
+                    <button className="secondary small" onClick={firmaUebernehmen}>
+                      Aus eigener Firma übernehmen
+                    </button>
+                    <div className="muted" style={{ marginTop: 4 }}>
+                      Überschreibt die Verkäufer-Felder mit den aktuellen Angaben aus
+                      „Eigene Firma“ – nützlich für Rechnungen, die vor deren Pflege entstanden.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="section-title">Kopfdaten</div>
           {Object.keys(KOPF_LABELS).map((f) =>
-            kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort", "verkaeufer_telefon", "kaeufer_email", "verkaeufer_email", "bankverbindung_iban"].includes(f) ? (
+            !VERKAEUFER_FELDER.includes(f)
+              && (kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "kaeufer_email"].includes(f)) ? (
               <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}
