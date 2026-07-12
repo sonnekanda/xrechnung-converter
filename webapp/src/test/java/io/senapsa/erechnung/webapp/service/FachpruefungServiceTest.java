@@ -145,6 +145,39 @@ class FachpruefungServiceTest {
             assertThat(felder(report)).contains("position[1].menge");
             assertThat(report.issues().get(0).meldung()).contains("Position 1");
         }
+
+        @Test
+        void unsicheres_nicht_pflichtfeld_blockiert_ebenfalls() {
+            // Der 400014-Fall: Fälligkeit kam per OCR (gelb) und wurde nicht
+            // bestätigt - die Prüfung darf trotzdem NICHT durchgehen (K-02).
+            ObjectNode m = gueltigesModell();
+            feld((ObjectNode) m.get("kopf"), "faelligkeit", "2026-07-22", "unsicher");
+            FachpruefungService.Report report = service.pruefe(m);
+            assertThat(report.exportReady()).isFalse();
+            assertThat(felder(report)).containsExactly("faelligkeit");
+            assertThat(report.issues().get(0).meldung()).contains("unsicher");
+        }
+
+        @Test
+        void unsicheres_nicht_pflichtfeld_in_position_blockiert() {
+            ObjectNode m = gueltigesModell();
+            feld((ObjectNode) m.get("positionen").get(0), "artikelnummer", "100005", "unsicher");
+            FachpruefungService.Report report = service.pruefe(m);
+            assertThat(felder(report)).containsExactly("position[1].artikelnummer");
+        }
+
+        @Test
+        void interne_marker_und_optionale_fehlende_felder_blockieren_nicht() {
+            ObjectNode m = gueltigesModell();
+            // interner Marker (beginnt mit "_") wird ignoriert
+            feld((ObjectNode) m.get("kopf"), "_hinweis_dokumentart", "x", "unsicher");
+            // optionales Feld ohne Wert (rot) blockiert nicht - eine XRechnung
+            // ist auch ohne Leistungszeitraum gueltig
+            ObjectNode lz = ((ObjectNode) m.get("kopf")).putObject("leistungszeitraum");
+            lz.putNull("wert");
+            lz.put("status", "fehlt");
+            assertThat(service.pruefe(m).exportReady()).isTrue();
+        }
     }
 
     // --- Summen & Arithmetik ---------------------------------------------------

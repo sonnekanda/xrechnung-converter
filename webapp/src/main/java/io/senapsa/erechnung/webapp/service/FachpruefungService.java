@@ -63,12 +63,51 @@ public class FachpruefungService {
             }
         }
 
+        checkUnsichereFelder(model, issues);
         checkSummen(model, issues);
         checkArithmetik(model, issues);
         checkIban(model, issues);
 
         boolean exportReady = issues.isEmpty();
         return new Report(exportReady, issues);
+    }
+
+    /**
+     * K-02: JEDES unsichere (gelbe) Feld erfordert Bestätigung - nicht nur die
+     * Pflichtfelder. Ein z.B. per OCR erkanntes Fälligkeitsdatum darf nicht
+     * unbestätigt in eine „geprüfte" Rechnung gelangen. (Fehlende OPTIONALE
+     * Felder blockieren dagegen bewusst nicht: eine XRechnung ist auch ohne
+     * z.B. Leistungszeitraum gültig.)
+     */
+    private void checkUnsichereFelder(JsonNode model, List<Issue> issues) {
+        sweepUnsicher(model.path("kopf"), PFLICHT_KOPF, null, issues);
+        sweepUnsicher(model.path("summen"), PFLICHT_SUMMEN, null, issues);
+        JsonNode positionen = model.path("positionen");
+        for (int i = 0; positionen.isArray() && i < positionen.size(); i++) {
+            sweepUnsicher(positionen.get(i), PFLICHT_POSITION, i + 1, issues);
+        }
+    }
+
+    /** Meldet unsichere Felder eines Blocks; die Pflichtfelder sind bereits
+     *  über {@code checkField}/{@code checkPosition} abgedeckt. */
+    private void sweepUnsicher(JsonNode block, List<String> bereitsGeprueft,
+                               Integer posNr, List<Issue> issues) {
+        if (!block.isObject()) {
+            return;
+        }
+        block.fields().forEachRemaining(entry -> {
+            String name = entry.getKey();
+            JsonNode f = entry.getValue();
+            if (name.startsWith("_") || bereitsGeprueft.contains(name) || !f.isObject()) {
+                return; // interne Marker bzw. schon geprueft
+            }
+            if ("unsicher".equals(f.path("status").asText())) {
+                String feldId = posNr == null ? name : "position[" + posNr + "]." + name;
+                String prefix = posNr == null ? "" : "Position " + posNr + ": ";
+                issues.add(new Issue(feldId, hinweisOr(f,
+                        prefix + "„" + label(name) + "\" ist unsicher - bitte pruefen und bestaetigen.")));
+            }
+        });
     }
 
     /**
@@ -232,6 +271,19 @@ public class FachpruefungService {
             case "einzelpreis" -> "Einzelpreis";
             case "gesamtpreis" -> "Gesamtpreis";
             case "steuersatz" -> "Steuersatz";
+            case "faelligkeit" -> "Faelligkeit";
+            case "leistungszeitraum" -> "Leistungszeitraum";
+            case "zahlungsbedingungen" -> "Zahlungsbedingungen";
+            case "verkaeufer_ustid" -> "USt-IdNr (Verkaeufer)";
+            case "kaeufer_ustid" -> "USt-IdNr (Kaeufer)";
+            case "kaeufer_strasse" -> "Strasse (Kaeufer)";
+            case "kaeufer_plz" -> "PLZ (Kaeufer)";
+            case "kaeufer_ort" -> "Ort (Kaeufer)";
+            case "kaeufer_email" -> "E-Mail (Kaeufer)";
+            case "verkaeufer_email" -> "E-Mail (Verkaeufer)";
+            case "kaeufer_kundennummer" -> "Kundennummer";
+            case "bankverbindung_iban" -> "IBAN";
+            case "artikelnummer" -> "Artikelnummer";
             default -> field;
         };
     }

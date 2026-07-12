@@ -28,6 +28,8 @@ RUN set -eux; \
     mkdir -p /data && chown app:app /data
 WORKDIR /app
 COPY --from=build /build/target/webapp.jar ./webapp.jar
+# Standard-Logo (BRAND_LOGO_PATH zeigt darauf; eigenes Logo via /data/branding).
+COPY branding/logo.svg /app/branding/logo.svg
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 8080
