@@ -255,7 +255,7 @@ JSON, Multipart-Upload, klare Fehlercodes, OpenAPI-Dokumentation.
 - [x] Compose-Stack aus einer `.env`; `.example.env` kommentiert; non-root; Fail-Fast-Config; Single-Tenant dokumentiert  *(✅ inkl. Fail-Fast (StartupConfigValidator), Single-Tenant dokumentiert)*
 - [ ] Logs, Audit-Log, Health-Checks vorhanden; CI/CD mit Trivy läuft; alles unter `git.senapsa.io`  *(🟡 Logs/Audit/Health ✅; CI/Trivy geschrieben, aber nie gelaufen; Repo nicht auf git.senapsa.io (abgestimmt))*
 - [x] Lasttest 200 Rechnungen/Tag, 5 parallele Nutzer bestanden  *(✅ weit übertroffen)*
-- [ ] Tests (Unit, Integration, Negativ) grün; Doku vollständig (README, API, Benutzer, Admin, Mapping, Betrieb/Backup)  *(🟡 Python-Tests (extraction-worker, 10) grün + End-to-End-Smokes; Java-Unit-Tests (webapp/invoice-engine) fehlen; Doku vollständig)*
+- [x] Tests (Unit, Integration, Negativ) grün; Doku vollständig (README, API, Benutzer, Admin, Mapping, Betrieb/Backup)  *(✅ 44 Java-Unit-Tests (Fachprüfung, Statusmaschine, Service-Gates inkl. Negativfälle) + 10 Python-Tests grün + End-to-End-Smokes; Doku vollständig)*
 - [ ] Falls Lizenzpflicht: Lizenzcontroller vor Produktivphase aktiv  *(🟡 Schnittstelle vorbereitet; Durchsetzung offen – Lizenzpflicht ungeklärt)*
 - [x] Falls Ordner-Automatik aktiv: gemäß K-11 funktionsfähig  *(✅)*
 

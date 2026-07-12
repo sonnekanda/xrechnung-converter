@@ -218,7 +218,7 @@ Performance-Nachweis, Gesamtabnahme gegen K-01 bis K-11, Dokumentation (Kap. 8).
   - *User Story:* Als Betreiber möchte ich das Auslegungsziel per Lasttest nachweisen, damit die Instanz im Kundenbetrieb zuverlässig durchhält.
   - *Akzeptanzkriterien:* Lasttest zur Verifikation (Queue-Dimensionierung); Verifikation mit dem Pilotkunden.
 
-- [ ] **Abnahmetest Gesamt (K-01 bis K-11)** `Must` `K-01…K-11`  *(🟡 docs/abnahme.md deckt K-01…K-11 mit Nachweisen ab; formale Abnahme offen (Java-Unit-Tests fehlen, CI nie gelaufen))*
+- [ ] **Abnahmetest Gesamt (K-01 bis K-11)** `Must` `K-01…K-11`  *(🟡 docs/abnahme.md deckt K-01…K-11 mit Nachweisen ab; Tests grün (44 Java + 10 Python); formale Abnahme offen (CI nie gelaufen, Pilotkunde))*
   - *User Story:* Als Produktverantwortlicher möchte ich alle Abnahmekriterien formal gegen Beispieldaten und amtliche Prüffälle testen, damit die Abnahme belastbar dokumentiert ist.
   - *Akzeptanzkriterien:* Formaler Abnahmetest gegen alle K-01–K-10 (sowie K-11 falls Ordner-Automatik aktiviert); DoD vollständig abgehakt.
 
