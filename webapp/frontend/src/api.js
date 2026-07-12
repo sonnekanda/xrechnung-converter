@@ -58,6 +58,7 @@ export const api = {
   status: (id) => request("GET", `/files/${id}/status`),
   stammdaten: () => request("GET", "/stammdaten"),
   createStammdaten: (r) => request("POST", "/stammdaten", { body: r }),
+  updateStammdaten: (id, r) => request("PUT", `/stammdaten/${id}`, { body: r }),
   deleteStammdaten: (id) => request("DELETE", `/stammdaten/${id}`),
   company: () => request("GET", "/admin/company"),
   saveCompany: (c) => request("PUT", "/admin/company", { body: c }),
