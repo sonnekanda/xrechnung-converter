@@ -38,6 +38,14 @@ const VERKAEUFER_FELDER = [
   "verkaeufer_name", "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort",
   "verkaeufer_telefon", "verkaeufer_email", "verkaeufer_ustid", "bankverbindung_iban",
 ];
+// Käufer-/Empfänger-Daten – ebenfalls gruppiert, aber standardmäßig aufgeklappt
+// (sie ändern sich je Rechnung und sind die häufigste Korrekturstelle).
+const KAEUFER_FELDER = [
+  "kaeufer_name", "kaeufer_strasse", "kaeufer_plz", "kaeufer_ort",
+  "kaeufer_ustid", "kaeufer_email",
+];
+// Rechnungsbezogene Kopffelder (weder Verkäufer noch Käufer), in Anzeigereihenfolge.
+const KOPF_FELDER = ["rechnungsnummer", "rechnungsdatum", "faelligkeit", "waehrung", "leitweg_id"];
 
 function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
@@ -102,6 +110,26 @@ function FieldRow({ label, field, onSave, readOnly, issue }) {
   );
 }
 
+// Gruppierter, ein-/ausklappbarer Feldblock (Verkäufer, Käufer). Ein offener
+// Punkt (offen=true) hält den Abschnitt aufgeklappt, damit ein Problem – z.B.
+// ein fehlendes Pflichtfeld – nie hinter einer Kopfzeile verschwindet.
+function CollapsibleGroup({ title, summary, offen, defaultOpen, okLabel = "✓ vollständig", children }) {
+  const [userOpen, setUserOpen] = useState(defaultOpen);
+  const open = userOpen || offen;
+  return (
+    <div className="collapse-box">
+      <button type="button" className="collapse-head" onClick={() => setUserOpen((o) => !o)}
+              aria-expanded={open}>
+        <span className="chev">{open ? "▾" : "▸"}</span>
+        <span>{title}</span>
+        <span className="collapse-sum muted">{summary}</span>
+        <span className={offen ? "badge-warn" : "badge-ok"}>{offen ? "⚠ unvollständig" : okLabel}</span>
+      </button>
+      {open && <div className="collapse-body">{children}</div>}
+    </div>
+  );
+}
+
 export default function Pruefbildschirm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -112,7 +140,6 @@ export default function Pruefbildschirm() {
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [zeigeBericht, setZeigeBericht] = useState(false);
-  const [verkaeuferAuf, setVerkaeuferAuf] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Erfolgs-Toast oben automatisch nach 3 s schließen.
@@ -257,15 +284,14 @@ export default function Pruefbildschirm() {
   (detail.issues || []).forEach((i) => { issueByFeld[i.feld] = i.meldung; });
   const ladeXml = () => download(api.exportPath(id), `rechnung-${kopf.rechnungsnummer?.wert || id}.xml`);
 
-  // Verkäufer-Abschnitt: offen, sobald ein Feld beanstandet oder unsicher ist –
-  // sonst eingeklappt. So bleibt die konstante Firmen­info aus dem Weg, ein
-  // Problem (z.B. fehlendes Telefon) wird aber nie versteckt.
-  const verkaeuferOffen = VERKAEUFER_FELDER.some(
-    (f) => issueByFeld[f] || (kopf[f] && kopf[f].status !== "sicher"));
-  const verkaeuferSektionAuf = verkaeuferAuf || verkaeuferOffen;
-  const verkaeuferZusammenfassung = [
-    kopf.verkaeufer_name?.wert, kopf.verkaeufer_ort?.wert, kopf.verkaeufer_ustid?.wert,
-  ].filter(Boolean).join(" · ");
+  // Ein Feldblock hat einen offenen Punkt, sobald ein Feld beanstandet oder
+  // unsicher ist – dann bleibt der Abschnitt aufgeklappt.
+  const gruppeOffen = (felder) =>
+    felder.some((f) => issueByFeld[f] || (kopf[f] && kopf[f].status !== "sicher"));
+  const zusammenfassung = (nameF, ortF, idF) =>
+    [kopf[nameF]?.wert, kopf[ortF]?.wert, kopf[idF]?.wert].filter(Boolean).join(" · ");
+  const verkaeuferOffen = gruppeOffen(VERKAEUFER_FELDER);
+  const kaeuferOffen = gruppeOffen(KAEUFER_FELDER);
 
   return (
     <div>
@@ -358,57 +384,55 @@ export default function Pruefbildschirm() {
         </div>
 
         <div className="panel">
-          {/* Verkäufer (eigene Firma): konstante Daten, standardmäßig eingeklappt. */}
-          <div className="collapse-box">
-            <button type="button" className="collapse-head"
-                    onClick={() => setVerkaeuferAuf((v) => !v)}
-                    aria-expanded={verkaeuferSektionAuf}>
-              <span className="chev">{verkaeuferSektionAuf ? "▾" : "▸"}</span>
-              <span>Verkäufer (eigene Firma)</span>
-              <span className="collapse-sum muted">{verkaeuferZusammenfassung}</span>
-              <span className={verkaeuferOffen ? "badge-warn" : "badge-ok"}>
-                {verkaeuferOffen ? "⚠ unvollständig" : "✓ aus eigener Firma"}
-              </span>
-            </button>
-            {verkaeuferSektionAuf && (
-              <div className="collapse-body">
-                {VERKAEUFER_FELDER.map((f) => (
-                  <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly}
-                            issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
-                ))}
-                {!readOnly && (
-                  <div className="mt">
-                    <button className="secondary small" onClick={firmaUebernehmen}>
-                      Aus eigener Firma übernehmen
-                    </button>
-                    <div className="muted" style={{ marginTop: 4 }}>
-                      Überschreibt die Verkäufer-Felder mit den aktuellen Angaben aus
-                      „Eigene Firma“ – nützlich für Rechnungen, die vor deren Pflege entstanden.
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           <div className="section-title">Kopfdaten</div>
-          {Object.keys(KOPF_LABELS).map((f) =>
-            !VERKAEUFER_FELDER.includes(f)
-              && (kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "kaeufer_email"].includes(f)) ? (
+          {/* Rechnungsbezogene Felder */}
+          {KOPF_FELDER.map((f) =>
+            kopf[f] !== undefined || f === "leitweg_id" ? (
               <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}
-          {kopf.kaeufer_name?.wert && (
-            <div className="mt">
-              <button className="secondary" onClick={() => saveRecipient(kopf)}>
-                Empfänger in Stammdaten speichern
-              </button>
-              <div className="muted" style={{ marginTop: 4 }}>
-                Übernimmt Name, USt-IdNr, Kundennummer, Adresse und Leitweg-ID für die
-                automatische Ergänzung künftiger Rechnungen.
+
+          {/* Verkäufer (eigene Firma): konstante Daten, standardmäßig eingeklappt. */}
+          <CollapsibleGroup title="Verkäufer (eigene Firma)" okLabel="✓ aus eigener Firma"
+                            summary={zusammenfassung("verkaeufer_name", "verkaeufer_ort", "verkaeufer_ustid")}
+                            offen={verkaeuferOffen} defaultOpen={false}>
+            {VERKAEUFER_FELDER.map((f) => (
+              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly}
+                        issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
+            ))}
+            {!readOnly && (
+              <div className="mt">
+                <button className="secondary small" onClick={firmaUebernehmen}>
+                  Aus eigener Firma übernehmen
+                </button>
+                <div className="muted" style={{ marginTop: 4 }}>
+                  Überschreibt die Verkäufer-Felder mit den aktuellen Angaben aus
+                  „Eigene Firma“ – nützlich für Rechnungen, die vor deren Pflege entstanden.
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </CollapsibleGroup>
+
+          {/* Käufer (Empfänger): rechnungsspezifisch, standardmäßig aufgeklappt. */}
+          <CollapsibleGroup title="Käufer (Empfänger)"
+                            summary={zusammenfassung("kaeufer_name", "kaeufer_ort", "kaeufer_ustid")}
+                            offen={kaeuferOffen} defaultOpen>
+            {KAEUFER_FELDER.map((f) => (
+              <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly}
+                        issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
+            ))}
+            {kopf.kaeufer_name?.wert && (
+              <div className="mt">
+                <button className="secondary" onClick={() => saveRecipient(kopf)}>
+                  Empfänger in Stammdaten speichern
+                </button>
+                <div className="muted" style={{ marginTop: 4 }}>
+                  Übernimmt Name, USt-IdNr, Kundennummer, Adresse und Leitweg-ID für die
+                  automatische Ergänzung künftiger Rechnungen.
+                </div>
+              </div>
+            )}
+          </CollapsibleGroup>
 
           <div className="section-title">Summen</div>
           {Object.keys(SUMMEN_LABELS).map((f) =>
