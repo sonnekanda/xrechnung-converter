@@ -43,6 +43,8 @@ class FachpruefungServiceTest {
         feld(kopf, "verkaeufer_strasse", "Musterweg 1", "sicher");
         feld(kopf, "verkaeufer_plz", "10115", "sicher");
         feld(kopf, "verkaeufer_ort", "Berlin", "sicher");
+        feld(kopf, "verkaeufer_telefon", "+49 30 1234567", "sicher");
+        feld(kopf, "verkaeufer_email", "rechnung@senapsa-test.de", "sicher");
         feld(kopf, "verkaeufer_ustid", "DE123456789", "sicher");
         feld(kopf, "kaeufer_name", "Kleine Automobile AG", "sicher");
         feld(kopf, "leitweg_id", "991-12345-67", "sicher");
@@ -216,6 +218,20 @@ class FachpruefungServiceTest {
             assertThat(report.exportReady()).isFalse();
             assertThat(felder(report)).contains("verkaeufer_ustid");
             assertThat(report.issues().get(0).meldung()).contains("Steuernummer");
+        }
+
+        @Test
+        void fehlender_verkaeufer_kontakt_blockiert() {
+            // XRechnung verlangt Verkaeufer-Telefon (BT-42, BR-DE-6) und -E-Mail
+            // (BT-43, BR-DE-7). Fehlen sie, scheiterte frueher erst die amtliche
+            // Prüfung an leer eingebetteten Kontaktfeldern (Fall 400014).
+            ObjectNode m = gueltigesModell();
+            ObjectNode kopf = (ObjectNode) m.get("kopf");
+            kopf.remove("verkaeufer_telefon");
+            kopf.remove("verkaeufer_email");
+            FachpruefungService.Report report = service.pruefe(m);
+            assertThat(report.exportReady()).isFalse();
+            assertThat(felder(report)).contains("verkaeufer_telefon", "verkaeufer_email");
         }
 
         @Test

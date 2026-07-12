@@ -21,10 +21,16 @@ public class FachpruefungService {
     private static final List<String> PFLICHT_KOPF = List.of(
             "rechnungsnummer", "rechnungsdatum", "waehrung",
             "verkaeufer_name", "kaeufer_name", "leitweg_id");
-    // Postanschrift der eigenen Firma (Verkaeufer, BG-5). Stammt aus dem
-    // Stammdaten-Autofill; fehlt sie, ist die eigene Firma nicht gepflegt.
-    private static final List<String> PFLICHT_VERKAEUFER_ADRESSE = List.of(
-            "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort");
+    // Angaben zur eigenen Firma (Verkaeufer), die eine gueltige XRechnung
+    // verlangt und die aus dem Stammdaten-Autofill stammen:
+    //  - Postanschrift (BG-5): Strasse/PLZ/Ort,
+    //  - Kontakt (BG-6): Telefon (BT-42, BR-DE-6) und E-Mail (BT-43, BR-DE-7).
+    // Der Kontaktname (BT-41) faellt in der Engine auf den Firmennamen zurueck
+    // und ist darum stets gesetzt. Fehlt eines dieser Felder, scheitert sonst
+    // erst die amtliche Validierung - im Pruefbildschirm sieht alles gruen aus.
+    private static final List<String> PFLICHT_VERKAEUFER = List.of(
+            "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort",
+            "verkaeufer_telefon", "verkaeufer_email");
     private static final List<String> PFLICHT_SUMMEN = List.of(
             "nettobetrag", "steuerbetrag", "bruttobetrag");
     private static final List<String> PFLICHT_POSITION = List.of(
@@ -210,16 +216,17 @@ public class FachpruefungService {
     }
 
     /**
-     * Prueft, ob die eigene Firma (Verkaeufer) vollstaendig gepflegt ist.
-     * Postanschrift (BG-5) und wenigstens eine Steuerkennung (USt-IdNr ODER
-     * Steuernummer, EN16931 BR-CO-26) sind fuer eine gueltige XRechnung noetig.
+     * Prueft, ob die eigene Firma (Verkaeufer) vollstaendig gepflegt ist:
+     * Postanschrift (BG-5), Kontakt Telefon/E-Mail (BG-6, BR-DE-6/7) und
+     * wenigstens eine Steuerkennung (USt-IdNr ODER Steuernummer, BR-CO-26)
+     * sind fuer eine gueltige XRechnung noetig.
      * Diese Werte kommen aus dem Stammdaten-Autofill; fehlen sie, wuerde erst die
      * amtliche Validierung fehlschlagen - ein Blindflug, weil im Pruefbildschirm
      * alles gruen erscheint. Darum hier feldbezogen und mit Hinweis auf die
      * Stammdaten-Pflege melden.
      */
     private void checkEigeneFirma(JsonNode model, List<Issue> issues) {
-        for (String f : PFLICHT_VERKAEUFER_ADRESSE) {
+        for (String f : PFLICHT_VERKAEUFER) {
             if (modelJson.fehlt(model, "kopf", f)) {
                 issues.add(new Issue(f, "„" + label(f) + "\" fehlt - bitte unter"
                         + " Stammdaten → Eigene Firma ergaenzen."));
@@ -307,6 +314,7 @@ public class FachpruefungService {
             case "verkaeufer_strasse" -> "Strasse (eigene Firma)";
             case "verkaeufer_plz" -> "PLZ (eigene Firma)";
             case "verkaeufer_ort" -> "Ort (eigene Firma)";
+            case "verkaeufer_telefon" -> "Telefon (eigene Firma)";
             case "kaeufer_ustid" -> "USt-IdNr (Kaeufer)";
             case "kaeufer_strasse" -> "Strasse (Kaeufer)";
             case "kaeufer_plz" -> "PLZ (Kaeufer)";

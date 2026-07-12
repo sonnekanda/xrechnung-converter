@@ -13,6 +13,7 @@ const KOPF_LABELS = {
   verkaeufer_strasse: "Straße (eigene Firma)",
   verkaeufer_plz: "PLZ (eigene Firma)",
   verkaeufer_ort: "Ort (eigene Firma)",
+  verkaeufer_telefon: "Telefon (eigene Firma)",
   verkaeufer_ustid: "USt-IdNr (Verkäufer)",
   kaeufer_name: "Käufer",
   kaeufer_strasse: "Straße (Käufer)",
@@ -327,7 +328,7 @@ export default function Pruefbildschirm() {
         <div className="panel">
           <div className="section-title">Kopfdaten</div>
           {Object.keys(KOPF_LABELS).map((f) =>
-            kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort", "kaeufer_email", "verkaeufer_email", "bankverbindung_iban"].includes(f) ? (
+            kopf[f] !== undefined || ["leitweg_id", "kaeufer_name", "verkaeufer_name", "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort", "verkaeufer_telefon", "kaeufer_email", "verkaeufer_email", "bankverbindung_iban"].includes(f) ? (
               <FieldRow key={f} label={KOPF_LABELS[f]} field={kopf[f]} readOnly={readOnly} issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
             ) : null
           )}

@@ -11,6 +11,7 @@ function firmaUnvollstaendig(c) {
   if (!c) return true;
   const leer = (v) => !v || !String(v).trim();
   return leer(c.name) || leer(c.strasse) || leer(c.plz) || leer(c.ort)
+    || leer(c.telefon) || leer(c.email)
     || (leer(c.ustId) && leer(c.steuernummer));
 }
 
