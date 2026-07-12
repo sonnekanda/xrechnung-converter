@@ -43,7 +43,19 @@ public class InvoiceController {
             @org.springframework.web.bind.annotation.RequestParam(required = false)
             @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
             java.time.LocalDate bis) {
-        return invoiceService.list(von, bis).stream().map(InvoiceDtos.InvoiceSummary::of).toList();
+        return invoiceService.list(von, bis).stream().map(this::toSummary).toList();
+    }
+
+    /** Übersichtszeile inkl. Käufer und Bruttobetrag aus dem internen Modell. */
+    private InvoiceDtos.InvoiceSummary toSummary(Invoice invoice) {
+        String kaeuferName = null;
+        String bruttobetrag = null;
+        if (invoice.getModelJson() != null) {
+            var model = modelJson.parse(invoice.getModelJson());
+            kaeuferName = modelJson.wert(model, "kopf", "kaeufer_name");
+            bruttobetrag = modelJson.wert(model, "summen", "bruttobetrag");
+        }
+        return InvoiceDtos.InvoiceSummary.of(invoice, kaeuferName, bruttobetrag);
     }
 
     @GetMapping("/{id}")

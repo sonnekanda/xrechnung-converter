@@ -55,6 +55,13 @@ function deDatum(iso) {
   return `${d}.${m}.${y}`;
 }
 
+function deBetrag(wert) {
+  if (wert == null || wert === "") return "—";
+  const n = Number(wert);
+  if (Number.isNaN(n)) return wert;
+  return `${n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
 export default function Dashboard() {
   const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
@@ -221,9 +228,10 @@ export default function Dashboard() {
               <th></th>
               <Th label="Rechnung" k="rechnungsnummer" />
               <Th label="Rechnungsdatum" k="rechnungsdatum" />
+              <th>Käufer</th>
+              <th style={{ textAlign: "right" }}>Summe</th>
               <th>Dateien</th>
               <Th label="Status" k="status" />
-              <th>Prüfergebnis</th>
               <th>Aktionen</th>
             </tr>
           </thead>
@@ -240,13 +248,14 @@ export default function Dashboard() {
                   )}
                 </td>
                 <td>{deDatum(i.rechnungsdatum)}</td>
+                <td>{i.kaeuferName || "—"}</td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{deBetrag(i.bruttobetrag)}</td>
                 <td className="muted">
                   {i.pdfFilename && <div>PDF{i.needsOcr ? " (OCR nötig)" : ""}</div>}
                   {i.csvFilename && <div>CSV</div>}
                   {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
                 <td><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
-                <td className="muted">{i.valid ? "gültig" : "—"}</td>
                 <td className="row" style={{ gap: 6 }}>
                   {["PRUEFEN", "IN_VERARBEITUNG", "HOCHGELADEN"].includes(i.status) && (
                     <Link to={`/pruefen/${i.id}`}><button className="secondary small">Prüfen</button></Link>
