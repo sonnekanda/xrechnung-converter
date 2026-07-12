@@ -109,8 +109,12 @@ public class FachpruefungService {
         block.fields().forEachRemaining(entry -> {
             String name = entry.getKey();
             JsonNode f = entry.getValue();
-            if (name.startsWith("_") || bereitsGeprueft.contains(name) || !f.isObject()) {
-                return; // interne Marker bzw. schon geprueft
+            // "position" ist die reine Zeilennummer (Reihenfolge), kein fachliches
+            // Feld: die Engine nutzt sie nicht und es gibt kein Bestätigen-Feld im
+            // Prüfbildschirm. Sie darf daher den Export nicht blockieren.
+            if (name.startsWith("_") || "position".equals(name)
+                    || bereitsGeprueft.contains(name) || !f.isObject()) {
+                return; // interne Marker, Zeilennummer bzw. schon geprueft
             }
             if ("unsicher".equals(f.path("status").asText())) {
                 String feldId = posNr == null ? name : "position[" + posNr + "]." + name;

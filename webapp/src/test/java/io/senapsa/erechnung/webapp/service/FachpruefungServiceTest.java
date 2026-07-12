@@ -175,6 +175,15 @@ class FachpruefungServiceTest {
         }
 
         @Test
+        void unsichere_positionsnummer_blockiert_nicht() {
+            // "position" ist nur die Zeilennummer (kein Bestätigen-Feld im UI) und
+            // darf den Export nicht blockieren, auch wenn OCR sie als unsicher liest.
+            ObjectNode m = gueltigesModell();
+            feld((ObjectNode) m.get("positionen").get(0), "position", "1", "unsicher");
+            assertThat(service.pruefe(m).exportReady()).isTrue();
+        }
+
+        @Test
         void interne_marker_und_optionale_fehlende_felder_blockieren_nicht() {
             ObjectNode m = gueltigesModell();
             // interner Marker (beginnt mit "_") wird ignoriert

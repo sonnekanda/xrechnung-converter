@@ -20,6 +20,7 @@ const KOPF_LABELS = {
   kaeufer_plz: "PLZ (Käufer)",
   kaeufer_ort: "Ort (Käufer)",
   kaeufer_ustid: "USt-IdNr (Käufer)",
+  kaeufer_kundennummer: "Kundennummer (Käufer)",
   kaeufer_email: "E-Mail (Käufer)",
   verkaeufer_email: "E-Mail (Verkäufer)",
   bankverbindung_iban: "IBAN",
@@ -42,7 +43,7 @@ const VERKAEUFER_FELDER = [
 // (sie ändern sich je Rechnung und sind die häufigste Korrekturstelle).
 const KAEUFER_FELDER = [
   "kaeufer_name", "kaeufer_strasse", "kaeufer_plz", "kaeufer_ort",
-  "kaeufer_ustid", "kaeufer_email",
+  "kaeufer_ustid", "kaeufer_kundennummer", "kaeufer_email",
 ];
 // Rechnungsbezogene Kopffelder (weder Verkäufer noch Käufer), in Anzeigereihenfolge.
 const KOPF_FELDER = ["rechnungsnummer", "rechnungsdatum", "faelligkeit", "waehrung", "leitweg_id"];
@@ -452,7 +453,7 @@ export default function Pruefbildschirm() {
           {positionen.map((pos, idx) => (
             <div key={idx} className="panel" style={{ margin: "8px 0", padding: 12 }}>
               <strong>Position {idx + 1}: {pos.artikelnummer?.wert || ""}</strong>
-              {["beschreibung", "menge", "einheit", "einzelpreis", "gesamtpreis", "steuersatz"].map((f) => (
+              {["artikelnummer", "beschreibung", "menge", "einheit", "einzelpreis", "gesamtpreis", "steuersatz"].map((f) => (
                 <FieldRow
                   key={f}
                   label={f}
