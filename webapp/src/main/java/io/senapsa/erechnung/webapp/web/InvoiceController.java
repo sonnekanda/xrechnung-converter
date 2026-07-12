@@ -139,6 +139,6 @@ public class InvoiceController {
         }
         return new InvoiceDtos.InvoiceDetail(invoice.getId().toString(), invoice.getStatus().name(),
                 invoice.isNeedsOcr(), invoice.isValid(), invoice.getPdfFilename(), invoice.getCsvFilename(),
-                model, exportReady, issues);
+                model, exportReady, issues, invoice.getValidationReport() != null);
     }
 }

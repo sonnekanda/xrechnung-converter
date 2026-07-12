@@ -38,6 +38,12 @@ class FachpruefungServiceTest {
         feld(kopf, "rechnungsdatum", "2026-07-02", "sicher");
         feld(kopf, "waehrung", "EUR", "sicher");
         feld(kopf, "verkaeufer_name", "Senapsa Test GmbH", "sicher");
+        // Eigene Firma (Verkaeufer): Postanschrift + Steuerkennung aus dem
+        // Stammdaten-Autofill - Voraussetzung fuer eine gueltige XRechnung.
+        feld(kopf, "verkaeufer_strasse", "Musterweg 1", "sicher");
+        feld(kopf, "verkaeufer_plz", "10115", "sicher");
+        feld(kopf, "verkaeufer_ort", "Berlin", "sicher");
+        feld(kopf, "verkaeufer_ustid", "DE123456789", "sicher");
         feld(kopf, "kaeufer_name", "Kleine Automobile AG", "sicher");
         feld(kopf, "leitweg_id", "991-12345-67", "sicher");
         ObjectNode summen = m.putObject("summen");
@@ -176,6 +182,49 @@ class FachpruefungServiceTest {
             ObjectNode lz = ((ObjectNode) m.get("kopf")).putObject("leistungszeitraum");
             lz.putNull("wert");
             lz.put("status", "fehlt");
+            assertThat(service.pruefe(m).exportReady()).isTrue();
+        }
+    }
+
+    // --- Eigene Firma (Verkaeufer) ---------------------------------------------
+
+    @Nested
+    class EigeneFirma {
+
+        @Test
+        void fehlende_verkaeufer_adresse_blockiert_feldbezogen() {
+            // Frische Installation: eigene Firma nicht gepflegt -> Autofill hat
+            // Strasse/PLZ/Ort nicht gesetzt. Frueher blieb alles gruen und erst
+            // KoSIT scheiterte; jetzt meldet die Fachpruefung es feldbezogen.
+            ObjectNode m = gueltigesModell();
+            ObjectNode kopf = (ObjectNode) m.get("kopf");
+            kopf.remove("verkaeufer_strasse");
+            kopf.remove("verkaeufer_plz");
+            kopf.remove("verkaeufer_ort");
+            FachpruefungService.Report report = service.pruefe(m);
+            assertThat(report.exportReady()).isFalse();
+            assertThat(felder(report))
+                    .contains("verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort");
+            assertThat(report.issues().get(0).meldung()).contains("Eigene Firma");
+        }
+
+        @Test
+        void ohne_ustid_und_ohne_steuernummer_blockiert() {
+            ObjectNode m = gueltigesModell();
+            ((ObjectNode) m.get("kopf")).remove("verkaeufer_ustid");
+            FachpruefungService.Report report = service.pruefe(m);
+            assertThat(report.exportReady()).isFalse();
+            assertThat(felder(report)).contains("verkaeufer_ustid");
+            assertThat(report.issues().get(0).meldung()).contains("Steuernummer");
+        }
+
+        @Test
+        void steuernummer_genuegt_statt_ustid() {
+            // BR-CO-26: eine der beiden Kennungen reicht (z.B. Kleinunternehmer).
+            ObjectNode m = gueltigesModell();
+            ObjectNode kopf = (ObjectNode) m.get("kopf");
+            kopf.remove("verkaeufer_ustid");
+            feld(kopf, "verkaeufer_steuernummer", "12/345/67890", "sicher");
             assertThat(service.pruefe(m).exportReady()).isTrue();
         }
     }

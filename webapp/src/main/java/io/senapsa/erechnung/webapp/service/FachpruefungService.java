@@ -21,6 +21,10 @@ public class FachpruefungService {
     private static final List<String> PFLICHT_KOPF = List.of(
             "rechnungsnummer", "rechnungsdatum", "waehrung",
             "verkaeufer_name", "kaeufer_name", "leitweg_id");
+    // Postanschrift der eigenen Firma (Verkaeufer, BG-5). Stammt aus dem
+    // Stammdaten-Autofill; fehlt sie, ist die eigene Firma nicht gepflegt.
+    private static final List<String> PFLICHT_VERKAEUFER_ADRESSE = List.of(
+            "verkaeufer_strasse", "verkaeufer_plz", "verkaeufer_ort");
     private static final List<String> PFLICHT_SUMMEN = List.of(
             "nettobetrag", "steuerbetrag", "bruttobetrag");
     private static final List<String> PFLICHT_POSITION = List.of(
@@ -63,6 +67,7 @@ public class FachpruefungService {
             }
         }
 
+        checkEigeneFirma(model, issues);
         checkUnsichereFelder(model, issues);
         checkSummen(model, issues);
         checkArithmetik(model, issues);
@@ -204,6 +209,30 @@ public class FachpruefungService {
         return value.mod(java.math.BigInteger.valueOf(97)).intValue() == 1;
     }
 
+    /**
+     * Prueft, ob die eigene Firma (Verkaeufer) vollstaendig gepflegt ist.
+     * Postanschrift (BG-5) und wenigstens eine Steuerkennung (USt-IdNr ODER
+     * Steuernummer, EN16931 BR-CO-26) sind fuer eine gueltige XRechnung noetig.
+     * Diese Werte kommen aus dem Stammdaten-Autofill; fehlen sie, wuerde erst die
+     * amtliche Validierung fehlschlagen - ein Blindflug, weil im Pruefbildschirm
+     * alles gruen erscheint. Darum hier feldbezogen und mit Hinweis auf die
+     * Stammdaten-Pflege melden.
+     */
+    private void checkEigeneFirma(JsonNode model, List<Issue> issues) {
+        for (String f : PFLICHT_VERKAEUFER_ADRESSE) {
+            if (modelJson.fehlt(model, "kopf", f)) {
+                issues.add(new Issue(f, "„" + label(f) + "\" fehlt - bitte unter"
+                        + " Stammdaten → Eigene Firma ergaenzen."));
+            }
+        }
+        String ustId = modelJson.wert(model, "kopf", "verkaeufer_ustid");
+        String steuernummer = modelJson.wert(model, "kopf", "verkaeufer_steuernummer");
+        if ((ustId == null || ustId.isBlank()) && (steuernummer == null || steuernummer.isBlank())) {
+            issues.add(new Issue("verkaeufer_ustid", "USt-IdNr oder Steuernummer der eigenen"
+                    + " Firma fehlt - bitte unter Stammdaten → Eigene Firma ergaenzen."));
+        }
+    }
+
     private void checkField(JsonNode model, String block, String field, List<Issue> issues) {
         JsonNode f = model.path(block).path(field);
         String status = f.path("status").asText("fehlt");
@@ -275,6 +304,9 @@ public class FachpruefungService {
             case "leistungszeitraum" -> "Leistungszeitraum";
             case "zahlungsbedingungen" -> "Zahlungsbedingungen";
             case "verkaeufer_ustid" -> "USt-IdNr (Verkaeufer)";
+            case "verkaeufer_strasse" -> "Strasse (eigene Firma)";
+            case "verkaeufer_plz" -> "PLZ (eigene Firma)";
+            case "verkaeufer_ort" -> "Ort (eigene Firma)";
             case "kaeufer_ustid" -> "USt-IdNr (Kaeufer)";
             case "kaeufer_strasse" -> "Strasse (Kaeufer)";
             case "kaeufer_plz" -> "PLZ (Kaeufer)";

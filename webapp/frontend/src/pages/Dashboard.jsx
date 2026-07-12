@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { useAuth } from "../auth.jsx";
 import ReportModal from "../components/ReportModal";
+
+// Die eigene Firma muss so weit gepflegt sein, dass die amtliche Prüfung nicht
+// an fehlenden Verkäufer-Angaben scheitert (Name, Postanschrift + eine
+// Steuerkennung – spiegelt die Fachprüfung wider).
+function firmaUnvollstaendig(c) {
+  if (!c) return true;
+  const leer = (v) => !v || !String(v).trim();
+  return leer(c.name) || leer(c.strasse) || leer(c.plz) || leer(c.ort)
+    || (leer(c.ustId) && leer(c.steuernummer));
+}
 
 const STATUS_LABEL = {
   HOCHGELADEN: "Hochgeladen",
@@ -44,8 +55,23 @@ function deDatum(iso) {
 }
 
 export default function Dashboard() {
+  const { isAdmin } = useAuth();
   const [invoices, setInvoices] = useState([]);
+  const [firmaHinweis, setFirmaHinweis] = useState(false);
+  const [hinweisZu, setHinweisZu] = useState(false);
   const [error, setError] = useState(null);
+
+  // Einmaliger Einrichtungs-Hinweis: ist die eigene Firma noch nicht (vollständig)
+  // hinterlegt, schlägt jede amtliche Prüfung fehl – ohne Firmendaten kann keine
+  // gültige XRechnung entstehen. Nur für Admins (nur sie können es beheben) und
+  // nur solange unvollständig; der Hinweis verschwindet von selbst, sobald die
+  // Firma gepflegt ist.
+  useEffect(() => {
+    if (!isAdmin) return;
+    api.company()
+      .then((c) => setFirmaHinweis(firmaUnvollstaendig(c)))
+      .catch(() => {});
+  }, [isAdmin]);
   const [range, setRange] = useState(monthRange());
   const [alle, setAlle] = useState(false);
   const [sort, setSort] = useState({ key: "rechnungsdatum", dir: "desc" });
@@ -135,6 +161,18 @@ export default function Dashboard() {
         <h2>Übersicht</h2>
         <Link to="/upload"><button>Rechnung hochladen</button></Link>
       </div>
+
+      {firmaHinweis && !hinweisZu && (
+        <div className="banner warn row" style={{ justifyContent: "space-between" }}>
+          <span>
+            Die Angaben zur <strong>eigenen Firma</strong> sind noch nicht vollständig
+            hinterlegt. Ohne sie schlägt die amtliche Prüfung fehl – bitte zuerst die
+            Firmendaten ergänzen. <Link to="/firma">Zu den Firmendaten →</Link>
+          </span>
+          <button className="ghost icon" onClick={() => setHinweisZu(true)}
+                  aria-label="Hinweis schließen" title="Schließen">✕</button>
+        </div>
+      )}
 
       <div className="toolbar">
         <div className="field">

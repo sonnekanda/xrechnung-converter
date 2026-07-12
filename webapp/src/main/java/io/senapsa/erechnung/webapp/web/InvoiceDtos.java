@@ -29,7 +29,7 @@ public final class InvoiceDtos {
     public record InvoiceDetail(String id, String status, boolean needsOcr, boolean valid,
                                 String pdfFilename, String csvFilename,
                                 JsonNode model, boolean exportReady,
-                                List<Issue> issues) {
+                                List<Issue> issues, boolean hasReport) {
     }
 
     public record Issue(String feld, String meldung) {
