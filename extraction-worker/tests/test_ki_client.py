@@ -17,6 +17,26 @@ def _modell_mit_luecke() -> InvoiceModel:
     return m
 
 
+def test_ki_ruehrt_verkaeufer_nicht_an(monkeypatch):
+    """Der Verkaeufer ist immer die eigene Firma (Stammdaten) - die KI darf ihn
+    nie vorschlagen (sonst Kaeufer/Verkaeufer-Verwechslung wie bei 400009)."""
+    assert not any(k.startswith("verkaeufer") for k in ki_client._KI_KOPF_FELDER)
+
+    monkeypatch.setenv("KI_ENABLED", "true")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    # Selbst wenn das Modell einen fehlenden Verkaeufer hat und das LLM (falsch)
+    # einen liefert, darf das Feld nicht gesetzt werden.
+    monkeypatch.setattr(
+        ki_client, "_call_openrouter",
+        lambda raw, felder, cfg: {"verkaeufer_name": "Kleine Automobile AG"},
+    )
+    m = _modell_mit_luecke()
+    m.kopf["verkaeufer_name"] = fehlend("Verkaeufer nicht erkannt - bitte ergaenzen.")
+    enrich_with_ki(m, "Senapsa Test * Teststr. * 65868 Testhausen\nKleine Automobile AG")
+    assert m.kopf["verkaeufer_name"]["wert"] is None
+    assert m.kopf["verkaeufer_name"]["herkunft"] == Herkunft.MANUELL.value
+
+
 def test_ki_aus_per_default(monkeypatch):
     """Ohne KI_ENABLED wird nicht ergaenzt und kein Netzwerkaufruf gemacht."""
     monkeypatch.delenv("KI_ENABLED", raising=False)

@@ -35,12 +35,18 @@ _DEFAULT_MODEL = "openai/gpt-4o-mini"
 # Nur diese Kopf-/Summenfelder darf die KI ergaenzen. Bewusst eng gehalten:
 # gut aus Freitext ableitbare, klar benannte Felder - keine Positionen, keine
 # Betraege, die aus der CSV stammen muessten.
+#
+# WICHTIG: KEINE Verkaeufer-Felder. Der Verkaeufer ist bei diesen ausgehenden
+# Abas-Rechnungen immer die eigene Firma (Single-Tenant) und wird verlaesslich
+# aus den Stammdaten/CompanyProfile gefuellt - nicht aus dem Belegtext. Im
+# Abas-Layout ist optisch der KAEUFER prominent (Adressfenster), der Verkaeufer
+# nur die kleine Absenderzeile; ein LLM verwechselt das leicht (setzt den Kaeufer
+# faelschlich als Verkaeufer). Zudem wuerde ein KI-Wert (status=unsicher) das
+# Stammdaten-Autofill blockieren, das nur echte Luecken (status=fehlt) fuellt.
 _KI_KOPF_FELDER = {
     "rechnungsnummer": "Rechnungsnummer/Belegnummer",
     "rechnungsdatum": "Rechnungsdatum (ISO 8601, JJJJ-MM-TT)",
     "faelligkeit": "Faelligkeitsdatum (ISO 8601, JJJJ-MM-TT)",
-    "verkaeufer_name": "Name des Rechnungsstellers/Verkaeufers",
-    "verkaeufer_ustid": "USt-IdNr des Verkaeufers",
     "kaeufer_name": "Name des Rechnungsempfaengers/Kaeufers",
     "kaeufer_strasse": "Strasse und Hausnummer des Kaeufers",
     "kaeufer_plz": "Postleitzahl des Kaeufers",
