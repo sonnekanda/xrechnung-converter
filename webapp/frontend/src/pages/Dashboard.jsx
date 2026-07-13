@@ -304,9 +304,9 @@ export default function Dashboard() {
                   {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
                 {/* Ergebnisse: Downloads/Bericht – Klicks bleiben in der Zelle. */}
-                <td className="row aktionen" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <td className="aktionen" onClick={(e) => e.stopPropagation()}>
                   {["VALIDIERT", "EXPORTIERT"].includes(i.status) && (
-                    <>
+                    <div className="aktionen-buttons">
                       <button className="small" onClick={() => download(i)}>XML</button>
                       {i.pdfFilename && (
                         <button className="secondary small" title="ZUGFeRD-PDF (XRechnung im Original-PDF) herunterladen"
@@ -314,7 +314,7 @@ export default function Dashboard() {
                       )}
                       <button className="secondary small" title="Validierungsbericht anzeigen"
                               onClick={() => setBericht(i)}>Bericht</button>
-                    </>
+                    </div>
                   )}
                 </td>
               </tr>
