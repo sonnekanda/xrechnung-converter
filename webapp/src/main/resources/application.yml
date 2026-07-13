@@ -65,6 +65,13 @@ erechnung:
     enforcement: ${LICENSE_ENFORCEMENT:false}
     controller-url: ${LICENSE_CONTROLLER_URL:}
     key: ${LICENSE_KEY:}
+  # Abas-ERP Direktanbindung per REST: Schnittstelle vorbereitet, noch nicht
+  # implementiert (siehe AbasApiInvoiceSource). Standard AUS.
+  source:
+    abas:
+      enabled: ${ABAS_API_ENABLED:false}
+      base-url: ${ABAS_API_BASE_URL:}
+      api-key: ${ABAS_API_KEY:}
 
 springdoc:
   swagger-ui:
