@@ -125,6 +125,12 @@ def _call_openrouter(raw_text: str, felder: dict[str, tuple[str, str | None]], c
         f"Bearbeite aus folgendem Rechnungstext diese Felder:\n{feld_liste}\n\n"
         f"--- Rechnungstext ---\n{raw_text[:6000]}"
     )
+    # Bewusst KEIN erzwungenes response_format: viele (gerade guenstige/freie)
+    # Modelle bzw. deren Provider lehnen {"type":"json_object"} mit HTTP 400 ab
+    # ("Supported formats: json_schema"). Wir verlassen uns stattdessen auf die
+    # klare JSON-Anweisung im System-Prompt (temperature=0) und das robuste
+    # _parse_json_object, das JSON auch aus ```json-Bloecken/Freitext herausloest.
+    # So bleibt die Modellwahl provider-unabhaengig.
     payload = {
         "model": cfg["model"],
         "temperature": 0,
@@ -132,7 +138,6 @@ def _call_openrouter(raw_text: str, felder: dict[str, tuple[str, str | None]], c
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        "response_format": {"type": "json_object"},
     }
     headers = {
         "Authorization": f"Bearer {cfg['api_key']}",
