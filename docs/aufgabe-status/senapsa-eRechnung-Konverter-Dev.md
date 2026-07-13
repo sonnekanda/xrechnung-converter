@@ -268,7 +268,7 @@ JSON, Multipart-Upload, klare Fehlercodes, OpenAPI-Dokumentation.
 3. **CSV-Mapping** definieren und versionieren (eigenständiger zweiter Datenpfad)
 4. **PDF-Layout-Analyse** — sind Abas-Layouts gleichförmig genug für `invoice2data`-Templates?
 5. Klären: wie gibt Abas **Skonto** aus, mehrere Steuersätze je Rechnung?
-6. Klären: liefert Abas **Gutschriften/Stornos**? (relevant für "Später")
+6. Klären: liefert Abas **Gutschriften/Stornos**? *(✅ ja — z. B. 400013 „Kaufmännische Gutschrift". Werden in beiden Datenpfaden (CSV-Rechnungsart + PDF-Belegkopf) erkannt, im Prüfbildschirm mit Hinweisbanner ausgewiesen und vom Export gesperrt. Vollständige Verarbeitung (negative Beträge/Positionen, Belegtyp 381/384) bleibt „Später".)*
 7. **ZUGFeRD-PoC**: vor Umsetzung mit 2–3 konkreten Rechnungsempfängern klären, welches Format wirklich gefordert wird
 8. **Aufwands- und Terminschätzung** als Ergebnis der PoC-Phase an Geschäftsführung liefern
 
@@ -283,3 +283,36 @@ JSON, Multipart-Upload, klare Fehlercodes, OpenAPI-Dokumentation.
 - **DB/Queue:** PostgreSQL 17, Redis 7
 - **Frontend:** frei wählbar (Desktop-Browser-fokussiert)
 - **Infra:** Docker Compose, CI/CD via GitLab (`git.senapsa.io`), Trivy-Scan, `registry.senapsa.io`
+
+---
+
+## 15. Nachträge (Stand 2026-07-13)
+
+Präzisierungen und Korrekturen nach weiteren Tests mit den Musterdaten:
+
+- **Prüfbildschirm – keine unsichtbaren Felder mehr.** Das Formular rendert nicht
+  mehr nur feste Whitelists, sondern zusätzlich alle übrigen Modellfelder als
+  Catch-all („Weitere Felder" bzw. am Ende von Positionen/Summen). Damit kann kein
+  von der Fachprüfung beanstandbares Feld mehr unsichtbar bleiben (u. a. der Fall
+  „alle Felder grün, Export dennoch gesperrt" bei OCR-Zusatzfeldern). Betrifft
+  A-08/K-02.
+
+- **Gutschrift/Storno-Erkennung in beiden Datenpfaden.** Bisher erkannte nur der
+  CSV-Pfad die Belegart (Spalte Rechnungsart); der PDF-Pfad setzte pauschal
+  „rechnung". Jetzt liest auch der PDF-Pfad die Belegart aus dem Kopf
+  („Kaufmännische Gutschrift Nr. …") über dieselbe Normalisierungstabelle. Im
+  Prüfbildschirm weist ein Hinweisbanner die Belegart aus, der Export bleibt
+  gesperrt (Scope „Später"). Betrifft die „Später"-Liste und offenen Punkt 6.
+
+- **Datenvorrang klargestellt und UI korrigiert.** Bei PDF+CSV ist die **CSV
+  maßgeblich**; das PDF dient der Gegenprüfung (Abweichung → gelb) und füllt
+  Lücken. OCR füllt bei OCR+CSV nur Lücken (keine Gegenprüfung, Werte bleiben
+  prüfpflichtig). Der Upload-Bildschirm beschrieb dies zuvor falsch („das PDF
+  führt") und wurde korrigiert. **Hinweis:** Das ursprüngliche ТЗ nennt „PDF
+  vorrangig" (K-01/A-01); die tatsächliche, bewusst gewählte Reihenfolge (CSV
+  führt) weicht davon ab und ist mit dem PO abzustimmen.
+
+- **UI-Verbesserungen.** Übersicht mit fixierter Kopfzeile beim Scrollen;
+  Stammdaten mit Bearbeiten/Live-Filter/Mehrfachauswahl/Sticky-Header;
+  Prüfbildschirm-Titel zeigt den tatsächlichen Status statt pauschal „Prüfen";
+  Einrichtungs-Banner bei unvollständiger „eigener Firma".

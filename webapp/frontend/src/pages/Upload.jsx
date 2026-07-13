@@ -84,8 +84,10 @@ export default function Upload() {
       <h2>Rechnungen hochladen</h2>
       <p className="muted">
         Laden Sie eine oder mehrere Abas-Rechnungen als PDF und/oder CSV hoch. Dateien mit
-        gleichem Namen (z. B. 400009.pdf + 400009.csv) gehören zu einer Rechnung; das PDF führt,
-        die CSV dient der Gegenprüfung.
+        gleichem Namen (z. B. 400009.pdf + 400009.csv) gehören zu einer Rechnung: Liegen beide
+        vor, ist die CSV maßgeblich (strukturierte Abas-Daten); das PDF dient der Gegenprüfung
+        und füllt fehlende Felder. Reine Scans ohne Textebene werden per OCR gelesen und sind
+        vollständig zu prüfen.
       </p>
       {error && <div className="banner err">{error}</div>}
       <div
