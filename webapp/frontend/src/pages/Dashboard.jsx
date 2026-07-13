@@ -183,7 +183,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="panel">
+    <div className="panel fill">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h2>Übersicht</h2>
         <Link to="/upload"><button>Rechnung hochladen</button></Link>

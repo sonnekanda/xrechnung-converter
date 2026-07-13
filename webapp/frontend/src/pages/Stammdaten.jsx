@@ -62,7 +62,7 @@ export default function Stammdaten() {
   }
 
   return (
-    <div className="panel">
+    <div className="panel fill">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h2>Empfänger-Stammdaten</h2>
         <button onClick={() => setModal({ isNew: true, data: EMPTY })}>Hinzufügen</button>

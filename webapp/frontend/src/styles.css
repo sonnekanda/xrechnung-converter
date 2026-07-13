@@ -44,8 +44,9 @@ input, select {
   width: 100%;
 }
 
-/* Layout mit Navigationsleiste */
-.app { display: flex; min-height: 100vh; }
+/* Layout mit Navigationsleiste. Feste Fensterhöhe: gescrollt wird innerhalb von
+   .content, damit sich Listen-Panels exakt bis zum Fensterrand strecken. */
+.app { display: flex; height: 100vh; overflow: hidden; }
 .sidebar {
   /* Volle Bildschirmhöhe, oben angeheftet: bei langen Seiten (Prüfbildschirm)
      wächst die Sidebar nicht mit – Griff bleibt mittig, Fußtasten sichtbar. */
@@ -115,20 +116,26 @@ img.logo {
 .nav-item.sub:hover { background: transparent; color: #ffffff; }
 .nav-item.sub.active { background: transparent; color: #ffffff; font-weight: 600; }
 
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .topbar {
   background: var(--panel); border-bottom: 1px solid var(--line);
   padding: 12px 24px; display: flex; align-items: center; gap: 16px;
 }
 .topbar h1 { font-size: 16px; margin: 0; }
 .topbar .user { margin-left: auto; color: var(--muted); font-size: 14px; }
-.content { padding: 24px; }
+/* Inhaltsbereich als Spalte, die den Platz unter der Topbar ausfüllt und intern
+   scrollt – so strecken sich „fill"-Panels (Tabellen) exakt bis zum Fensterrand,
+   während lange Seiten (Prüfbildschirm) hier statt am Body scrollen. */
+.content { padding: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: auto; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 12px; box-shadow: var(--shadow); padding: 20px;
 }
 .panel h2 { margin-top: 0; }
+/* Panel, das die volle Resthöhe einnimmt (Listenseiten). Die scrollbare Tabelle
+   darin (.table-scroll-v) wächst per flex bis zum unteren Fensterrand mit. */
+.panel.fill { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
 /* Tabelle Uebersicht */
 table { width: 100%; border-collapse: collapse; }
@@ -152,8 +159,11 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
 table.uebersicht { table-layout: fixed; min-width: 1084px; }
 tr.klickbar { cursor: pointer; }
 
-/* Vertikal scrollbare Tabelle mit fixierter Kopfzeile (Übersicht, Stammdaten). */
-.table-scroll-v { max-height: 62vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
+/* Vertikal scrollbare Tabelle mit fixierter Kopfzeile (Übersicht, Stammdaten).
+   Füllt in einem .panel.fill die Resthöhe (flex) und scrollt intern; als
+   Rückfall (ohne fill-Kontext) begrenzt max-height die Höhe. */
+.table-scroll-v { flex: 1; min-height: 0; max-height: 62vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
+.panel.fill .table-scroll-v { max-height: none; }
 .table-scroll-v thead th {
   position: sticky; top: 0; z-index: 1; background: var(--panel);
   box-shadow: inset 0 -1px 0 var(--line);
@@ -217,7 +227,9 @@ button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
 
 /* Feste Aktionsleiste des Prüfbildschirms (klebt beim Scrollen oben) */
 .action-bar {
-  position: sticky; top: 0; z-index: 20;
+  /* top: -24px hebt die Leiste über das 24px-Padding des scrollenden .content
+     und klebt sie bündig unter die Topbar (nicht 24px darunter). */
+  position: sticky; top: -24px; z-index: 20;
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   margin: -24px -24px 16px; padding: 12px 24px;
   background: var(--bg); border-bottom: 1px solid var(--line);
