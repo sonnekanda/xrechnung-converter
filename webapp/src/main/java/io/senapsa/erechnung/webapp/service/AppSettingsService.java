@@ -69,12 +69,17 @@ public class AppSettingsService {
     /**
      * Speichert die KI-Assistent-Einstellungen. Getrennt vom Ordner-Automatik-
      * {@link #save}, damit sich beide Bereiche nicht gegenseitig ueberschreiben.
-     * Ein leerer {@code apiKey} laesst den bestehenden Schluessel unangetastet
-     * (das Frontend bekommt den Schluessel nie zu sehen).
+     * {@code override} ist der Master-Schalter: nur bei {@code true} ueber-
+     * schreiben die Werte die .env-Vorgaben. Die vier Detailwerte werden
+     * dennoch immer gespeichert – so bleiben sie erhalten, wenn der Nutzer den
+     * Schalter aus- und wieder einschaltet. Ein leerer {@code apiKey} laesst den
+     * bestehenden Schluessel unangetastet (das Frontend sieht den Schluessel nie).
      */
     @Transactional
-    public AppSettings saveKi(boolean enabled, String model, int timeoutSeconds, String apiKey) {
+    public AppSettings saveKi(boolean override, boolean enabled, String model,
+                              int timeoutSeconds, String apiKey) {
         AppSettings s = get();
+        s.setKiOverride(override);
         s.setKiEnabled(enabled);
         s.setKiModel(model);
         s.setKiTimeoutSeconds(timeoutSeconds);

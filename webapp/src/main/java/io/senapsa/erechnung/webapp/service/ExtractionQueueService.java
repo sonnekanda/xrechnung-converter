@@ -57,16 +57,19 @@ public class ExtractionQueueService {
             job.put("invoice_id", invoice.getId().toString());
             job.put("pdf_path", pdfPath == null ? "" : pdfPath);
             job.put("csv_path", csvPath == null ? "" : csvPath);
-            // Effektive KI-Einstellungen (DB, sonst .env-Seed) mitgeben, damit der
-            // Worker sie ohne eigenen Neustart anwendet. Schluessel nur bei aktivem
-            // Assistenten uebermitteln.
+            // KI-Einstellungen nur mitgeben, wenn der Admin die Standardwerte
+            // ausdruecklich ueberschreibt. Sonst kein "ki"-Feld -> der Worker
+            // nutzt seine eigene .env (Standardverhalten). So wirkt eine Aenderung
+            // ohne Worker-Neustart, und "Schalter aus" stellt sicher die Vorgaben her.
             var s = appSettings.get();
-            Map<String, Object> ki = new java.util.HashMap<>();
-            ki.put("enabled", s.isKiEnabled());
-            ki.put("model", s.getKiModel());
-            ki.put("timeout", s.getKiTimeoutSeconds());
-            ki.put("api_key", s.isKiEnabled() ? s.getKiApiKey() : "");
-            job.put("ki", ki);
+            if (s.isKiOverride()) {
+                Map<String, Object> ki = new java.util.HashMap<>();
+                ki.put("enabled", s.isKiEnabled());
+                ki.put("model", s.getKiModel());
+                ki.put("timeout", s.getKiTimeoutSeconds());
+                ki.put("api_key", s.isKiEnabled() ? s.getKiApiKey() : "");
+                job.put("ki", ki);
+            }
             redis.opsForList().leftPush(Q_IN, mapper.writeValueAsString(job));
             audit.log(invoice.getId(), "EXTRAKTION_EINGEREIHT", "Job in Queue gelegt");
         } catch (Exception e) {

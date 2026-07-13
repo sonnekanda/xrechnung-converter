@@ -48,7 +48,14 @@ public class AppSettings {
 
     // --- KI-Assistent (optionaler LLM-Fallback im extraction-worker) ---------
 
-    /** LLM-Fallback fuer fehlende Felder aktiv. */
+    /**
+     * Master-Schalter: die folgenden KI-Werte ueberschreiben die .env-Vorgaben.
+     * FALSE = Standardeinstellungen (Worker nutzt seine eigene .env).
+     */
+    @Column(name = "ki_override", nullable = false)
+    private boolean kiOverride = false;
+
+    /** LLM-Fallback fuer fehlende Felder aktiv (nur wirksam bei kiOverride). */
     @Column(name = "ki_enabled", nullable = false)
     private boolean kiEnabled = false;
 
@@ -134,6 +141,14 @@ public class AppSettings {
             case "ZUGFERD", "BEIDE", "XRECHNUNG" -> u;
             default -> "XRECHNUNG";
         };
+    }
+
+    public boolean isKiOverride() {
+        return kiOverride;
+    }
+
+    public void setKiOverride(boolean kiOverride) {
+        this.kiOverride = kiOverride;
     }
 
     public boolean isKiEnabled() {
