@@ -312,6 +312,17 @@ Präzisierungen und Korrekturen nach weiteren Tests mit den Musterdaten:
   vorrangig" (K-01/A-01); die tatsächliche, bewusst gewählte Reihenfolge (CSV
   führt) weicht davon ab und ist mit dem PO abzustimmen.
 
+- **Positionen manuell hinzufügen/entfernen.** Reaktion auf OCR-/PDF-Fluktuationen
+  ohne CSV: Erkennt der PDF-/OCR-Pfad eine Position nicht, gingen die Summen nie
+  auf und der Export blieb dauerhaft gesperrt – ohne Reparaturweg in der App. Neu
+  können im Prüfbildschirm Positionen ergänzt (Pflichtfelder rot) und entfernt
+  werden (Endpunkte `POST`/`DELETE /invoices/{id}/positionen[/{index}]`; gleiche
+  Guards wie Feldkorrektur, Audit `POSITION_HINZUGEFÜGT`/`_ENTFERNT`). Bewusst
+  keine generische „beliebiges Feld hinzufügen"-Funktion – der XRechnung-
+  Pflichtfeldsatz ist fix und wird bereits immer gerendert; Korrektur erkannter
+  Daten bleibt im Scope (K-02), freies Erfassen einer Rechnung nicht. Betrifft
+  A-08/K-02.
+
 - **UI-Verbesserungen.** Übersicht mit fixierter Kopfzeile beim Scrollen;
   Stammdaten mit Bearbeiten/Live-Filter/Mehrfachauswahl/Sticky-Header;
   Prüfbildschirm-Titel zeigt den tatsächlichen Status statt pauschal „Prüfen";
