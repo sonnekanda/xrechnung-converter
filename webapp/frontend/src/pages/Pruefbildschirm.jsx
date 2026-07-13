@@ -24,6 +24,12 @@ const KOPF_LABELS = {
   kaeufer_email: "E-Mail (Käufer)",
   verkaeufer_email: "E-Mail (Verkäufer)",
   bankverbindung_iban: "IBAN",
+  // Weitere, nicht gruppierte Kopffelder – schöne Labels für den Catch-all-Block.
+  verkaeufer_land: "Land (eigene Firma)",
+  verkaeufer_kontakt_name: "Ansprechpartner (Verkäufer)",
+  bankverbindung_bic: "BIC",
+  zahlungsbedingungen: "Zahlungsbedingungen",
+  kaeufer_land: "Land (Käufer)",
 };
 const SUMMEN_LABELS = {
   nettobetrag: "Nettobetrag",
@@ -47,6 +53,36 @@ const KAEUFER_FELDER = [
 ];
 // Rechnungsbezogene Kopffelder (weder Verkäufer noch Käufer), in Anzeigereihenfolge.
 const KOPF_FELDER = ["rechnungsnummer", "rechnungsdatum", "faelligkeit", "waehrung", "leitweg_id"];
+// Positionsfelder in Anzeigereihenfolge.
+const POSITION_FELDER = ["artikelnummer", "beschreibung", "menge", "einheit", "einzelpreis", "gesamtpreis", "steuersatz"];
+
+// Alle Kopf-Schlüssel, die bereits in einer kuratierten Gruppe gerendert werden.
+const BEKANNTE_KOPF_FELDER = new Set([...KOPF_FELDER, ...VERKAEUFER_FELDER, ...KAEUFER_FELDER]);
+// Technische/strukturelle Schlüssel, die keine bestätigbaren Geschäftsfelder sind
+// (z. B. die Positions-Zeilennummer). Dieselbe Ausnahme wie im FachpruefungService.
+const STRUKTUR_FELDER = new Set(["position"]);
+
+// Ein Feld ist ein bestätigbares Datenfeld, wenn es ein Objekt mit „wert" ist
+// (im Gegensatz zu Metadaten wie schema_version, quelle usw.).
+function istFeldObjekt(f) {
+  return f != null && typeof f === "object" && "wert" in f;
+}
+
+// Fallback-Label aus dem Schlüssel: „bestellnummer" -> „Bestellnummer",
+// „leitweg_id" -> „Leitweg ID". Nur nötig für (noch) unbekannte Felder.
+function humanize(key) {
+  const s = key.replace(/_/g, " ").replace(/\bid\b/gi, "ID");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Schlüssel eines Feldblocks, die in keiner kuratierten Gruppe vorkommen und kein
+// technischer Marker sind. Sie MÜSSEN dennoch sichtbar/bestätigbar sein, damit die
+// Fachprüfung nie ein Feld beanstandet, das auf der Form gar nicht erscheint.
+function restFelder(block, bekannt) {
+  return Object.keys(block).filter(
+    (k) => !bekannt.has(k) && !STRUKTUR_FELDER.has(k) && !k.startsWith("_") && istFeldObjekt(block[k])
+  );
+}
 
 // Titel-Verb je Status, damit die Kopfzeile den tatsächlichen Zustand zeigt
 // (nicht mehr pauschal „Prüfen").
@@ -297,6 +333,10 @@ export default function Pruefbildschirm() {
     [kopf[nameF]?.wert, kopf[ortF]?.wert, kopf[idF]?.wert].filter(Boolean).join(" · ");
   const verkaeuferOffen = gruppeOffen(VERKAEUFER_FELDER);
   const kaeuferOffen = gruppeOffen(KAEUFER_FELDER);
+  // Catch-all: Kopffelder, die in keiner Gruppe stehen (künftige Extraktorfelder,
+  // OCR-Zusatzfelder …). So bleibt kein von der Fachprüfung beanstandbares Feld unsichtbar.
+  const restKopf = restFelder(kopf, BEKANNTE_KOPF_FELDER);
+  const restKopfOffen = gruppeOffen(restKopf);
 
   return (
     <div>
@@ -442,21 +482,41 @@ export default function Pruefbildschirm() {
             )}
           </CollapsibleGroup>
 
+          {/* Catch-all: alle übrigen Kopffelder, die in keiner Gruppe stehen.
+              Garantiert, dass kein beanstandbares Feld unsichtbar bleibt. */}
+          {restKopf.length > 0 && (
+            <CollapsibleGroup title="Weitere Felder"
+                              summary={`${restKopf.length} Feld(er)`}
+                              offen={restKopfOffen} defaultOpen={false}>
+              {restKopf.map((f) => (
+                <FieldRow key={f} label={KOPF_LABELS[f] || humanize(f)} field={kopf[f]} readOnly={readOnly}
+                          issue={issueByFeld[f]} onSave={(v) => saveField("kopf", f, v)} />
+              ))}
+            </CollapsibleGroup>
+          )}
+
           <div className="section-title">Summen</div>
           {Object.keys(SUMMEN_LABELS).map((f) =>
             summen[f] !== undefined ? (
               <FieldRow key={f} label={SUMMEN_LABELS[f]} field={summen[f]} readOnly={readOnly} issue={issueByFeld[f] || (f === "bruttobetrag" ? issueByFeld.summen : undefined)} onSave={(v) => saveField("summen", f, v)} />
             ) : null
           )}
+          {/* Catch-all: übrige Summen-Felder, falls das Modell künftig weitere liefert. */}
+          {restFelder(summen, new Set(Object.keys(SUMMEN_LABELS))).map((f) => (
+            <FieldRow key={f} label={humanize(f)} field={summen[f]} readOnly={readOnly}
+                      issue={issueByFeld[f]} onSave={(v) => saveField("summen", f, v)} />
+          ))}
 
           <div className="section-title">Positionen ({positionen.length})</div>
           {positionen.map((pos, idx) => (
             <div key={idx} className="panel" style={{ margin: "8px 0", padding: 12 }}>
               <strong>Position {idx + 1}: {pos.artikelnummer?.wert || ""}</strong>
-              {["artikelnummer", "beschreibung", "menge", "einheit", "einzelpreis", "gesamtpreis", "steuersatz"].map((f) => (
+              {/* Bekannte Positionsfelder in fester Reihenfolge, danach als Catch-all
+                  alle übrigen Feld-Schlüssel dieser Position (ohne Zeilennummer). */}
+              {[...POSITION_FELDER, ...restFelder(pos, new Set(POSITION_FELDER))].map((f) => (
                 <FieldRow
                   key={f}
-                  label={f}
+                  label={KOPF_LABELS[f] || humanize(f)}
                   field={pos[f]}
                   readOnly={readOnly}
                   issue={issueByFeld[`position[${idx + 1}].${f}`]}
