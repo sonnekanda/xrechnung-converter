@@ -71,25 +71,46 @@ public class StammdatenAutofillService {
         return 1;
     }
 
-    /** Verkaeufer/Zahlungsweg aus der eigenen Firma. */
+    /**
+     * Verkaeufer/Zahlungsweg aus der eigenen Firma. Der Verkaeufer ist stets die
+     * eigene Firma; ein aus dem Beleg gelesener Wert unsicherer Herkunft (OCR/KI)
+     * wird daher durch die verlaesslichen Firmendaten ersetzt - so bleibt z.B. ein
+     * OCR-Lesefehler in der USt-IdNr ("DEO0001") nicht stehen, wenn die Firma die
+     * korrekte kennt. Verlaessliche Belegwerte (pdf/csv) bleiben unangetastet.
+     */
     private void applyCompany(ObjectNode model) {
         CompanyProfile c = companyProfile.find().orElse(null);
         if (c == null) {
             return;
         }
-        fillIfMissing(model, "verkaeufer_name", c.getName());
-        fillIfMissing(model, "verkaeufer_strasse", c.getStrasse());
-        fillIfMissing(model, "verkaeufer_plz", c.getPlz());
-        fillIfMissing(model, "verkaeufer_ort", c.getOrt());
-        fillIfMissing(model, "verkaeufer_land", c.getLand());
-        fillIfMissing(model, "verkaeufer_ustid", c.getUstId());
-        fillIfMissing(model, "verkaeufer_steuernummer", c.getSteuernummer());
-        fillIfMissing(model, "verkaeufer_kontakt_name", c.getKontaktName());
-        fillIfMissing(model, "verkaeufer_email", c.getEmail());
-        fillIfMissing(model, "verkaeufer_telefon", c.getTelefon());
-        fillIfMissing(model, "bankverbindung_iban", c.getIban());
-        fillIfMissing(model, "bankverbindung_bic", c.getBic());
+        fillOrCorrect(model, "verkaeufer_name", c.getName());
+        fillOrCorrect(model, "verkaeufer_strasse", c.getStrasse());
+        fillOrCorrect(model, "verkaeufer_plz", c.getPlz());
+        fillOrCorrect(model, "verkaeufer_ort", c.getOrt());
+        fillOrCorrect(model, "verkaeufer_land", c.getLand());
+        fillOrCorrect(model, "verkaeufer_ustid", c.getUstId());
+        fillOrCorrect(model, "verkaeufer_steuernummer", c.getSteuernummer());
+        fillOrCorrect(model, "verkaeufer_kontakt_name", c.getKontaktName());
+        fillOrCorrect(model, "verkaeufer_email", c.getEmail());
+        fillOrCorrect(model, "verkaeufer_telefon", c.getTelefon());
+        fillOrCorrect(model, "bankverbindung_iban", c.getIban());
+        fillOrCorrect(model, "bankverbindung_bic", c.getBic());
         fillIfMissing(model, "zahlungsbedingungen", c.getZahlungsbedingungen());
+    }
+
+    /**
+     * Setzt ein Verkaeufer-Feld aus den Firmendaten, wenn es fehlt ODER aus
+     * unsicherer Quelle (OCR/KI) stammt. Belegwerte aus pdf/csv bleiben erhalten.
+     */
+    private void fillOrCorrect(ObjectNode model, String field, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        String h = modelJson.herkunft(model, "kopf", field);
+        boolean unsichereQuelle = "ocr".equals(h) || "ki".equals(h);
+        if (modelJson.fehlt(model, "kopf", field) || unsichereQuelle) {
+            modelJson.set(model, "kopf", field, value, "stammdaten", "sicher");
+        }
     }
 
     /** Empfaenger-Felder + Leitweg-ID aus den Empfaenger-Stammdaten. */

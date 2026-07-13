@@ -176,7 +176,7 @@ def run_extraction(pdf_path: str | Path | None = None,
         # (PDF-Textebene oder - beim Scan - der OCR-Text). Ergaenzt herkunft=ki/
         # unsicher -> immer pruefpflichtig, nie Auto-Export.
         ki_text = ocr_text if used_ocr else (pdf_res.raw_text if pdf_res else "")
-        enrich_with_ki(csv_model, ki_text, ki_config)
+        enrich_with_ki(csv_model, ki_text, ki_config, correct_ocr=used_ocr)
         _flag_gutschrift(csv_model)
         return ExtractionOutcome(model=csv_model, needs_ocr=used_ocr,
                                  raw_text=pdf_res.raw_text if pdf_res else "")
@@ -187,10 +187,10 @@ def run_extraction(pdf_path: str | Path | None = None,
             # Keine Textebene und keine CSV -> OCR (falls verfuegbar), prueffpflichtig.
             ocr_res = run_ocr(pdf_path) if ocr_available() else None
             if ocr_res is not None:
-                # KI-Fallback auf dem OCR-Text: Felder, die die regelbasierte
-                # OCR-Auswertung nicht erkannt hat (status=fehlt), per LLM aus dem
-                # - oft fehlerbehafteten - OCR-Text ergaenzen (herkunft=ki/unsicher).
-                enrich_with_ki(ocr_res.model, ocr_res.text, ki_config)
+                # KI-Fallback auf dem OCR-Text: fehlende Felder ergaenzen UND
+                # OCR-Lesefehler in erkannten Feldern korrigieren (correct_ocr).
+                # Ergebnis herkunft=ki/unsicher (pruefpflichtig).
+                enrich_with_ki(ocr_res.model, ocr_res.text, ki_config, correct_ocr=True)
                 _flag_gutschrift(ocr_res.model)
                 return ExtractionOutcome(model=ocr_res.model, needs_ocr=True, raw_text=ocr_res.text)
             # OCR nicht moeglich: leeres Geruest -> manuell erfassbar, damit der

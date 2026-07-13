@@ -40,6 +40,12 @@ public class ModelJson {
         return w.isMissingNode() || w.isNull() ? null : w.asText();
     }
 
+    /** Herkunft eines Feldes (pdf/csv/ocr/ki/stammdaten/manuell/berechnet) oder null. */
+    public String herkunft(JsonNode model, String block, String field) {
+        JsonNode h = model.path(block).path(field).path("herkunft");
+        return h.isMissingNode() || h.isNull() ? null : h.asText();
+    }
+
     /** true, wenn das Feld fehlt (nicht vorhanden, ohne Wert oder Status "fehlt"). */
     public boolean fehlt(JsonNode model, String block, String field) {
         JsonNode f = model.path(block).path(field);

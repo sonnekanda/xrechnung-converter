@@ -81,29 +81,48 @@ def ki_available(config: dict | None = None) -> bool:
     return cfg["enabled"] and bool(cfg["api_key"])
 
 
-def _missing_fields(model: InvoiceModel) -> dict[str, str]:
-    """Kopf-Felder, die ergaenzbar sind: rot (fehlt) oder ohne Wert."""
-    out: dict[str, str] = {}
+def _candidates(model: InvoiceModel, correct_ocr: bool) -> dict[str, tuple[str, str | None]]:
+    """Bearbeitbare Kopf-Felder als ``{feld: (beschreibung, aktueller_wert)}``.
+
+    Immer dabei: leere/rote Felder (``aktueller_wert=None`` -> extrahieren). Bei
+    ``correct_ocr`` zusaetzlich Felder mit OCR-Herkunft (Wert = aktuelle, oft
+    fehlerhafte OCR-Lesung -> von der KI korrigieren lassen). Verlaessliche
+    Quellen (pdf/csv/stammdaten/manuell) werden nie angetastet."""
+    out: dict[str, tuple[str, str | None]] = {}
     for key, beschreibung in _KI_KOPF_FELDER.items():
         f = model.kopf.get(key)
-        if (not f) or f.get("wert") in (None, "") or f.get("status") == Status.FEHLT.value:
-            out[key] = beschreibung
+        leer = (not f) or f.get("wert") in (None, "") or f.get("status") == Status.FEHLT.value
+        if leer:
+            out[key] = (beschreibung, None)
+        elif correct_ocr and f.get("herkunft") == Herkunft.OCR.value:
+            out[key] = (beschreibung, str(f.get("wert")))
     return out
 
 
-def _call_openrouter(raw_text: str, felder: dict[str, str], cfg: dict) -> dict[str, Any]:
-    """Fragt das Modell nach genau den fehlenden Feldern. Liefert {} bei Fehler."""
+def _call_openrouter(raw_text: str, felder: dict[str, tuple[str, str | None]], cfg: dict) -> dict[str, Any]:
+    """Fragt das Modell nach genau den angefragten Feldern. Liefert {} bei Fehler.
+
+    Felder ohne aktuellen Wert werden extrahiert; Felder mit (OCR-)Wert sollen
+    korrigiert werden, falls die OCR sie offensichtlich falsch gelesen hat."""
     import requests  # nur im Container benoetigt
 
-    feld_liste = "\n".join(f"- {k}: {v}" for k, v in felder.items())
+    zeilen = []
+    for k, (beschr, aktuell) in felder.items():
+        if aktuell is None:
+            zeilen.append(f"- {k}: {beschr}")
+        else:
+            zeilen.append(f"- {k}: {beschr} (OCR las: \"{aktuell}\" - nur offensichtliche "
+                          "OCR-Lesefehler korrigieren, sonst exakt diesen Wert zurueckgeben)")
+    feld_liste = "\n".join(zeilen)
     system = (
-        "Du extrahierst Felder aus deutschen Rechnungen. Antworte AUSSCHLIESSLICH "
-        "mit einem JSON-Objekt, dessen Schluessel exakt die angefragten Feldnamen "
-        "sind. Gib einen Wert nur an, wenn er eindeutig im Text steht; sonst null. "
-        "Erfinde nichts."
+        "Du extrahierst und korrigierst Felder aus deutschen Rechnungen. Antworte "
+        "AUSSCHLIESSLICH mit einem JSON-Objekt, dessen Schluessel exakt die "
+        "angefragten Feldnamen sind. Gib einen Wert nur an, wenn er eindeutig im "
+        "Text steht; sonst null. Bei angegebenem OCR-Wert nur klare Lesefehler "
+        "beheben (z.B. Buchstabe O statt Ziffer 0). Erfinde nichts."
     )
     user = (
-        f"Extrahiere aus folgendem Rechnungstext diese Felder:\n{feld_liste}\n\n"
+        f"Bearbeite aus folgendem Rechnungstext diese Felder:\n{feld_liste}\n\n"
         f"--- Rechnungstext ---\n{raw_text[:6000]}"
     )
     payload = {
@@ -142,42 +161,54 @@ def _parse_json_object(content: str) -> dict[str, Any]:
     return {}
 
 
-def enrich_with_ki(model: InvoiceModel, raw_text: str, config: dict | None = None) -> int:
-    """Fuellt fehlende Kopf-Felder per LLM. Gibt die Zahl ergaenzter Felder zurueck.
+def enrich_with_ki(model: InvoiceModel, raw_text: str, config: dict | None = None,
+                   correct_ocr: bool = False) -> int:
+    """Ergaenzt fehlende und (optional) korrigiert OCR-Kopf-Felder per LLM.
 
     ``config`` sind die von der webapp uebergebenen Laufzeit-Einstellungen
-    (DB-gepflegt); ohne ``config`` gilt die .env des Workers. Idempotent-sicher:
-    ueberschreibt nur wirklich fehlende Felder; alle Werte werden ``herkunft=ki``
-    / ``status=unsicher`` markiert (prueffpflichtig).
+    (DB-gepflegt); ohne ``config`` gilt die .env des Workers. ``correct_ocr``
+    aktiviert die Nachkorrektur OCR-gelesener Werte (nur fuer Scan-Belege sinnvoll,
+    da die PDF-Textebene verlaesslich ist). Idempotent-sicher: fasst nur leere oder
+    OCR-Felder an; alle geschriebenen Werte werden ``herkunft=ki`` / ``status=
+    unsicher`` markiert (prueffpflichtig). Gibt die Zahl geaenderter Felder zurueck.
     """
     cfg = resolve_config(config)
     if not ki_available(cfg) or not raw_text or not raw_text.strip():
         return 0
-    felder = _missing_fields(model)
+    felder = _candidates(model, correct_ocr)
     if not felder:
         return 0
 
+    log.info("KI-Fallback: pruefe %d Kandidatenfelder (correct_ocr=%s, modell=%s)",
+             len(felder), correct_ocr, cfg["model"])
     try:
         werte = _call_openrouter(raw_text, felder, cfg)
     except Exception:  # noqa: BLE001 - KI darf die Extraktion nie zum Scheitern bringen
         log.exception("KI-Fallback fehlgeschlagen - Extraktion laeuft ohne KI weiter")
         return 0
 
-    ergaenzt = 0
-    for key in felder:
+    geaendert = 0
+    for key, (_beschr, aktuell) in felder.items():
         wert = werte.get(key)
         if wert in (None, ""):
             continue
+        wert = str(wert).strip()
+        # OCR-Wert unveraendert bestaetigt -> nicht anfassen (bleibt herkunft=ocr).
+        if aktuell is not None and wert == str(aktuell).strip():
+            continue
+        korrektur = aktuell is not None
         model.kopf[key] = {
-            "wert": str(wert).strip(),
+            "wert": wert,
             "herkunft": Herkunft.KI.value,
             "status": Status.UNSICHER.value,
             "confidence": 0.5,
-            "hinweis": "Von der KI vorgeschlagen - bitte pruefen und bestaetigen.",
+            "hinweis": ("Von der KI korrigiert (OCR-Lesefehler) - bitte pruefen und bestaetigen."
+                        if korrektur else
+                        "Von der KI vorgeschlagen - bitte pruefen und bestaetigen."),
         }
-        ergaenzt += 1
+        geaendert += 1
 
-    if ergaenzt:
+    if geaendert:
         model.quelle["ki_verwendet"] = True
-        log.info("KI-Fallback hat %d fehlende Felder ergaenzt", ergaenzt)
-    return ergaenzt
+        log.info("KI-Fallback hat %d Felder ergaenzt/korrigiert", geaendert)
+    return geaendert

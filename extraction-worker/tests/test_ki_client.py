@@ -103,6 +103,63 @@ def test_ki_ohne_luecke_kein_aufruf(monkeypatch):
     assert called["n"] == 0
 
 
+def test_ki_korrigiert_ocr_wert(monkeypatch):
+    """correct_ocr: ein OCR-Feld (unsicher) mit Lesefehler wird von der KI
+    korrigiert -> herkunft=ki/unsicher, neuer Wert."""
+    monkeypatch.setenv("KI_ENABLED", "true")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(
+        ki_client, "_call_openrouter",
+        lambda raw, felder, cfg: {"kaeufer_ustid": "DE00001"},
+    )
+    m = InvoiceModel(mapping_version="test", dokumentart="rechnung")
+    m.kopf["kaeufer_ustid"] = feld("DEO0001", Herkunft.OCR, Status.UNSICHER)
+    n = enrich_with_ki(m, "Ihre USt-IdNr DEO0001", correct_ocr=True)
+    assert n == 1
+    ustid = m.kopf["kaeufer_ustid"]
+    assert ustid["wert"] == "DE00001"
+    assert ustid["herkunft"] == Herkunft.KI.value
+    assert ustid["status"] == Status.UNSICHER.value
+
+
+def test_ki_bestaetigter_ocr_wert_bleibt(monkeypatch):
+    """Gibt die KI denselben Wert zurueck, bleibt das Feld herkunft=ocr (kein
+    unnoetiges Umschreiben)."""
+    monkeypatch.setenv("KI_ENABLED", "true")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(
+        ki_client, "_call_openrouter",
+        lambda raw, felder, cfg: {"kaeufer_ustid": "DE00001"},
+    )
+    m = InvoiceModel(mapping_version="test", dokumentart="rechnung")
+    m.kopf["kaeufer_ustid"] = feld("DE00001", Herkunft.OCR, Status.UNSICHER)
+    assert enrich_with_ki(m, "Ihre USt-IdNr DE00001", correct_ocr=True) == 0
+    assert m.kopf["kaeufer_ustid"]["herkunft"] == Herkunft.OCR.value
+
+
+def test_ki_ohne_correct_ocr_faesst_ocr_werte_nicht_an(monkeypatch):
+    """Ohne correct_ocr (z.B. PDF-Textebene) bleiben OCR-Werte unberuehrt -
+    nur echte Luecken werden gefuellt."""
+    monkeypatch.setenv("KI_ENABLED", "true")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    called = {"n": 0}
+
+    def spy(raw, felder, cfg):
+        called["n"] += 1
+        return {"kaeufer_ustid": "DE00001"}
+
+    monkeypatch.setattr(ki_client, "_call_openrouter", spy)
+    # Alle KI-Felder sicher befuellen, nur die USt-IdNr als OCR-Wert -> ohne
+    # correct_ocr gibt es keine Kandidaten und keinen Aufruf.
+    m = InvoiceModel(mapping_version="test", dokumentart="rechnung")
+    for key in ki_client._KI_KOPF_FELDER:
+        m.kopf[key] = feld("x", Herkunft.CSV, Status.SICHER)
+    m.kopf["kaeufer_ustid"] = feld("DEO0001", Herkunft.OCR, Status.UNSICHER)
+    assert enrich_with_ki(m, "text", correct_ocr=False) == 0
+    assert called["n"] == 0
+    assert m.kopf["kaeufer_ustid"]["wert"] == "DEO0001"
+
+
 def test_ki_config_ueberschreibt_env(monkeypatch):
     """Vom Job uebergebene DB-Einstellungen haben Vorrang vor der .env:
     env sagt AUS, aber der Job aktiviert KI mit eigenem Schlussel/Modell."""
