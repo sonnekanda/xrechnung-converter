@@ -33,6 +33,22 @@ def test_pdf_textebene_400009():
     assert m["kopf"]["kaeufer_ort"]["wert"] == "Berlin"
 
 
+def test_belegart_rechnung_wird_erkannt():
+    m = extract_pdf_text("Rechnung Nr. 400009\nvom 02.07.2026\n", "400009.pdf")
+    assert m.dokumentart == "rechnung"
+    assert m.kopf["rechnungsnummer"]["wert"] == "400009"
+
+
+def test_kaufmaennische_gutschrift_wird_als_gutschrift_erkannt():
+    # PDF-Kopf einer kaufmännischen Gutschrift: Belegart muss erkannt werden,
+    # damit sie – wie im CSV-Pfad – vom Export gesperrt wird (Gutschriften = „Später").
+    text = ("Kaufmännische Gutschrift Nr. 400013\nSeite 1/2\nvom 02.07.2026\n"
+            "Kunde 70003 Vertreter\n")
+    m = extract_pdf_text(text, "400013.pdf")
+    assert m.dokumentart == "gutschrift"
+    assert m.kopf["rechnungsnummer"]["wert"] == "400013"
+
+
 def test_scan_ohne_textebene_braucht_ocr():
     r = extract_pdf(SCAN_PDF)
     assert r.needs_ocr is True

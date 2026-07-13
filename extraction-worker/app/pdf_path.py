@@ -12,8 +12,19 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .csv_mapping import abas_v1 as m
 from .model import Herkunft, InvoiceModel, Status, fehlend, feld
 from .normalize import format_decimal, parse_german_date, parse_german_decimal
+
+# Belegkopf: Belegart (Rechnung/Gutschrift/Storno) + Belegnummer, z.B.
+# "Rechnung Nr. 400009" oder "Kaufmännische Gutschrift Nr. 400013". So wird die
+# Belegart – wie im CSV-Pfad – auch aus der PDF erkannt und nicht pauschal als
+# „rechnung" angenommen (Gutschriften/Stornos werden dadurch korrekt gesperrt).
+_BELEGKOPF_RE = re.compile(
+    r"(?P<art>Kaufm\w+\s+Gutschrift|Gutschrift|Stornorechnung|Storno|Rechnung)"
+    r"\s+Nr\.?\s*(?P<nr>\d+)",
+    re.IGNORECASE,
+)
 
 # Menge + Einheit + Einzelpreis + optional % + Gesamtpreis in einer Positionszeile.
 _POS_RE = re.compile(
@@ -43,7 +54,13 @@ def extract_pdf_text(raw_text: str, quelle_name: str) -> InvoiceModel:
     model.quelle = {"pdf_datei": quelle_name, "pdf_hat_textebene": True}
     k = model.kopf
 
-    nummer = _search(r"Rechnung\s+Nr\.?\s*(\d+)", raw_text)
+    # Belegart + Nummer gemeinsam aus dem Kopf lesen. Die Art wird über dieselbe
+    # Tabelle wie im CSV-Pfad normalisiert (einzige Quelle der Wahrheit).
+    kopf_match = _BELEGKOPF_RE.search(raw_text)
+    if kopf_match:
+        art = re.sub(r"\s+", " ", kopf_match.group("art")).strip()
+        model.dokumentart = m.dokumentart_from_rechnungsart(art)
+    nummer = kopf_match.group("nr") if kopf_match else None
     k["rechnungsnummer"] = feld(nummer, Herkunft.PDF, Status.SICHER if nummer else Status.FEHLT,
                                 hinweis=None if nummer else "Rechnungsnummer nicht erkannt - bitte ergaenzen.")
 
