@@ -1,0 +1,64 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 449 >>
+stream
+BT
+/F1 12 Tf
+50 800 Td
+16 TL
+(Senapsa Test GmbH  .  Teststrasse 1  .  65868 Testhausen) Tj
+T*
+() Tj
+T*
+(R e c h n u n g) Tj
+T*
+() Tj
+T*
+(Beleg-Nr.: 2026-KW26-118) Tj
+T*
+(Ausgestellt am: 25.06.2026, faellig am 09.07.2026) Tj
+T*
+() Tj
+T*
+(Rechnung an:) Tj
+T*
+(Gruenwald Consulting GmbH) Tj
+T*
+(Maximilianstrasse 13) Tj
+T*
+(80539 Muenchen) Tj
+T*
+(USt-IdNr: DE320445566) Tj
+T*
+() Tj
+T*
+(Projektpauschale. 5.950,00 EUR inklusive Mehrwertsteuer.) Tj
+T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000741 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+838
+%%EOF
