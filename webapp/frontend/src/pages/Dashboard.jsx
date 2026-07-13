@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth.jsx";
@@ -83,6 +83,8 @@ export default function Dashboard() {
   }, [isAdmin]);
   const [range, setRange] = useState(monthRange());
   const [alle, setAlle] = useState(false);
+  const [q, setQ] = useState(""); // Freitext-Filter über die geladenen Rechnungen
+  const suchRef = useRef();
   const [sort, setSort] = useState({ key: "rechnungsdatum", dir: "desc" });
   const [selected, setSelected] = useState(() => new Set());
   const [bericht, setBericht] = useState(null); // Rechnung für den Bericht-Dialog
@@ -134,6 +136,18 @@ export default function Dashboard() {
     return arr;
   }, [invoices, sort]);
 
+  // Freitext-Filter über die sichtbaren Spalten (Rechnungsnr., Käufer, Status,
+  // Belegart, Summe). Wirkt nur auf die bereits geladene Zeitraum-Auswahl.
+  const gefiltert = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return sorted;
+    return sorted.filter((i) => {
+      const hay = [i.rechnungsnummer, i.kaeuferName, STATUS_LABEL[i.status] || i.status,
+        i.dokumentart, deBetrag(i.bruttobetrag)].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(term);
+    });
+  }, [sorted, q]);
+
   async function download(inv) {
     try { await api.download(api.exportPath(inv.id), `rechnung-${inv.rechnungsnummer || inv.id}.xml`); }
     catch (e) { alert(e.message); }
@@ -157,9 +171,9 @@ export default function Dashboard() {
     if (failed > 0) alert(`${failed} Rechnung(en) konnten nicht gelöscht werden.`);
   }
 
-  const allSelected = sorted.length > 0 && sorted.every((i) => selected.has(i.id));
+  const allSelected = gefiltert.length > 0 && gefiltert.every((i) => selected.has(i.id));
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(sorted.map((i) => i.id)));
+    setSelected(allSelected ? new Set() : new Set(gefiltert.map((i) => i.id)));
   }
 
   const Th = ({ label, k, align }) => (
@@ -214,16 +228,32 @@ export default function Dashboard() {
                  onChange={(e) => setAlle(e.target.checked)} />
           <span className="muted">Alle anzeigen</span>
         </label>
+        <div className="field" style={{ flex: 1, minWidth: 220 }}>
+          <label>Suchen</label>
+          <div className="such-feld">
+            <input ref={suchRef} value={q} onChange={(e) => setQ(e.target.value)}
+                   placeholder="Rechnungsnr., Käufer, Status …" />
+            {q && (
+              <button type="button" className="such-clear" title="Filter zurücksetzen"
+                      aria-label="Filter zurücksetzen"
+                      onClick={() => { setQ(""); suchRef.current?.focus(); }}>✕</button>
+            )}
+          </div>
+        </div>
         {selected.size > 0 && (
           <button className="danger small" onClick={removeSelected}>🗑 {selected.size} löschen</button>
         )}
         <div className="spacer" />
-        <span className="muted">{sorted.length} Rechnung(en)</span>
+        <span className="muted">{gefiltert.length} Rechnung(en)</span>
       </div>
 
       {error && <div className="banner err">{error}</div>}
-      {sorted.length === 0 ? (
-        <p className="muted">Keine Rechnungen im gewählten Zeitraum.</p>
+      {gefiltert.length === 0 ? (
+        <p className="muted">
+          {q.trim() && sorted.length > 0
+            ? "Keine Treffer für den Suchbegriff."
+            : "Keine Rechnungen im gewählten Zeitraum."}
+        </p>
       ) : (
         <div className="table-scroll-v">
         <table className="uebersicht">
@@ -253,7 +283,7 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((i) => (
+            {gefiltert.map((i) => (
               <tr key={i.id} className={`klickbar ${selected.has(i.id) ? "selected" : ""}`}
                   onClick={() => navigate(`/pruefen/${i.id}`)} title="Rechnung öffnen">
                 {/* Auswahl-Spalte: Klick darf die Zeile nicht öffnen. */}

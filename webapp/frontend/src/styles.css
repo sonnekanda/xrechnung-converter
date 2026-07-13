@@ -187,6 +187,21 @@ table.uebersicht th:nth-child(2), table.uebersicht td:nth-child(2) { padding-lef
 .month-nav .month-label { min-width: 120px; text-align: center; font-weight: 600; color: var(--ink); }
 button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
 
+/* Alle Bedienelemente der Filterleiste auf die Höhe der Datumsfelder (41px)
+   bringen und vertikal zentrieren – einheitliche Optik in einer Zeile. Betrifft
+   Monats-Tasten/Label, „Dieser Monat", Löschen und die „Alle anzeigen"-Checkbox
+   (deren Label direkt in der Leiste steht und sonst am Boden klebte). */
+.toolbar button,
+.toolbar .month-label,
+.toolbar > label {
+  min-height: 41px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Text-/Suchfelder exakt so hoch wie die (nativ etwas höheren) Datumsfelder. */
+.toolbar .field input { min-height: 41px; }
+
 .status-pill {
   font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
   background: #eef1f7; color: var(--muted);
