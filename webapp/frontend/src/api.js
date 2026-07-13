@@ -76,6 +76,8 @@ export const api = {
   protokoll: () => request("GET", "/admin/protokoll"),
   watchSettings: () => request("GET", "/admin/ordner-automatik"),
   saveWatchSettings: (s) => request("PUT", "/admin/ordner-automatik", { body: s }),
+  kiSettings: () => request("GET", "/admin/ki-assistent"),
+  saveKiSettings: (s) => request("PUT", "/admin/ki-assistent", { body: s }),
   setNav: (expanded) => request("PATCH", "/me/nav", { body: { expanded } }),
   // Geschuetzte Downloads/Anzeige: mit JWT laden und als Blob-URL bereitstellen.
   blobUrl: async (path) => {

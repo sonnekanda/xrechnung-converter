@@ -137,8 +137,12 @@ def merge_fill(base: InvoiceModel, extra: InvoiceModel, *, reliable: bool = True
 
 
 def run_extraction(pdf_path: str | Path | None = None,
-                   csv_path: str | Path | None = None) -> ExtractionOutcome:
-    """Fuehrt beide Datenpfade zusammen und liefert ein internes Modell."""
+                   csv_path: str | Path | None = None,
+                   ki_config: dict | None = None) -> ExtractionOutcome:
+    """Fuehrt beide Datenpfade zusammen und liefert ein internes Modell.
+
+    ``ki_config`` sind die von der webapp uebergebenen KI-Einstellungen (DB);
+    fehlt es, greift die .env des Workers (HTTP-Pfad)."""
     csv_model: InvoiceModel | None = None
     if csv_path:
         csv_model = parse_csv_bytes(Path(csv_path).read_bytes(), Path(csv_path).name)
@@ -168,7 +172,7 @@ def run_extraction(pdf_path: str | Path | None = None,
         csv_model.quelle["ocr_verwendet"] = used_ocr
         # KI-Fallback: nur echte Luecken (status=fehlt), aus der PDF-Textebene.
         # Ergaenzt herkunft=ki/unsicher -> immer pruefpflichtig, nie Auto-Export.
-        enrich_with_ki(csv_model, pdf_res.raw_text if pdf_res else "")
+        enrich_with_ki(csv_model, pdf_res.raw_text if pdf_res else "", ki_config)
         _flag_gutschrift(csv_model)
         return ExtractionOutcome(model=csv_model, needs_ocr=used_ocr,
                                  raw_text=pdf_res.raw_text if pdf_res else "")
@@ -186,7 +190,7 @@ def run_extraction(pdf_path: str | Path | None = None,
             return ExtractionOutcome(model=_empty_skeleton(Path(pdf_path).name, needs_ocr=True),
                                      needs_ocr=True, raw_text=pdf_res.raw_text)
         lead = pdf_res.model
-        enrich_with_ki(lead, pdf_res.raw_text)
+        enrich_with_ki(lead, pdf_res.raw_text, ki_config)
         _flag_gutschrift(lead)
         return ExtractionOutcome(model=lead, raw_text=pdf_res.raw_text)
 

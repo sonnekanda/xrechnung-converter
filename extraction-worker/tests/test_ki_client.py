@@ -35,7 +35,7 @@ def test_ki_fuellt_nur_luecken(monkeypatch):
     # Kaeufer zurueck; der Rest bleibt fehlt (KI erfindet nichts).
     monkeypatch.setattr(
         ki_client, "_call_openrouter",
-        lambda raw, felder: {"kaeufer_name": "Kleine Automobile AG"},
+        lambda raw, felder, cfg: {"kaeufer_name": "Kleine Automobile AG"},
     )
     m = _modell_mit_luecke()
     ergaenzt = enrich_with_ki(m, "Rechnung an Kleine Automobile AG, Berlin")
@@ -56,7 +56,7 @@ def test_ki_fehler_bricht_nicht_ab(monkeypatch):
     monkeypatch.setenv("KI_ENABLED", "true")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
 
-    def boom(raw, felder):
+    def boom(raw, felder, cfg):
         raise RuntimeError("Netzwerkfehler")
 
     monkeypatch.setattr(ki_client, "_call_openrouter", boom)
@@ -71,7 +71,7 @@ def test_ki_ohne_luecke_kein_aufruf(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     called = {"n": 0}
 
-    def spy(raw, felder):
+    def spy(raw, felder, cfg):
         called["n"] += 1
         return {}
 
@@ -81,3 +81,23 @@ def test_ki_ohne_luecke_kein_aufruf(monkeypatch):
         m.kopf[key] = feld("x", Herkunft.CSV, Status.SICHER)
     assert enrich_with_ki(m, "text") == 0
     assert called["n"] == 0
+
+
+def test_ki_config_ueberschreibt_env(monkeypatch):
+    """Vom Job uebergebene DB-Einstellungen haben Vorrang vor der .env:
+    env sagt AUS, aber der Job aktiviert KI mit eigenem Schlussel/Modell."""
+    monkeypatch.setenv("KI_ENABLED", "false")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    gesehen = {}
+
+    def capture(raw, felder, cfg):
+        gesehen.update(cfg)
+        return {"kaeufer_name": "Kleine Automobile AG"}
+
+    monkeypatch.setattr(ki_client, "_call_openrouter", capture)
+    cfg = {"enabled": True, "api_key": "db-key", "model": "anthropic/claude-3.5", "timeout": 15}
+    m = _modell_mit_luecke()
+    assert enrich_with_ki(m, "Rechnung an Kleine Automobile AG", cfg) == 1
+    assert gesehen["api_key"] == "db-key"
+    assert gesehen["model"] == "anthropic/claude-3.5"
+    assert m.kopf["kaeufer_name"]["herkunft"] == Herkunft.KI.value

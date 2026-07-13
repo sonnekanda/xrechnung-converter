@@ -17,13 +17,25 @@ public class AppSettingsService {
     private final AppSettingsRepository repo;
     private final boolean envWatchEnabled;
     private final int envWatchInterval;
+    private final boolean envKiEnabled;
+    private final String envKiModel;
+    private final String envKiApiKey;
+    private final int envKiTimeout;
 
     public AppSettingsService(AppSettingsRepository repo,
                               @Value("${erechnung.watch.enabled:false}") boolean envWatchEnabled,
-                              @Value("${erechnung.watch.interval-seconds:60}") int envWatchInterval) {
+                              @Value("${erechnung.watch.interval-seconds:60}") int envWatchInterval,
+                              @Value("${erechnung.ki.enabled:false}") boolean envKiEnabled,
+                              @Value("${erechnung.ki.model:openai/gpt-4o-mini}") String envKiModel,
+                              @Value("${erechnung.ki.api-key:}") String envKiApiKey,
+                              @Value("${erechnung.ki.timeout-seconds:30}") int envKiTimeout) {
         this.repo = repo;
         this.envWatchEnabled = envWatchEnabled;
         this.envWatchInterval = envWatchInterval;
+        this.envKiEnabled = envKiEnabled;
+        this.envKiModel = envKiModel;
+        this.envKiApiKey = envKiApiKey;
+        this.envKiTimeout = envKiTimeout;
     }
 
     @Transactional
@@ -32,6 +44,11 @@ public class AppSettingsService {
             AppSettings s = new AppSettings();
             s.setWatchEnabled(envWatchEnabled);
             s.setWatchIntervalSeconds(envWatchInterval);
+            // KI-Erstvorgaben aus der .env uebernehmen; danach ist die DB massgeblich.
+            s.setKiEnabled(envKiEnabled);
+            s.setKiModel(envKiModel);
+            s.setKiApiKey(envKiApiKey);
+            s.setKiTimeoutSeconds(envKiTimeout);
             return repo.save(s);
         });
     }
@@ -46,6 +63,24 @@ public class AppSettingsService {
         s.setWatchSettleSeconds(input.getWatchSettleSeconds());
         s.setAutoConfirmYellow(input.isAutoConfirmYellow());
         s.setWatchOutputFormat(input.getWatchOutputFormat());
+        return repo.save(s);
+    }
+
+    /**
+     * Speichert die KI-Assistent-Einstellungen. Getrennt vom Ordner-Automatik-
+     * {@link #save}, damit sich beide Bereiche nicht gegenseitig ueberschreiben.
+     * Ein leerer {@code apiKey} laesst den bestehenden Schluessel unangetastet
+     * (das Frontend bekommt den Schluessel nie zu sehen).
+     */
+    @Transactional
+    public AppSettings saveKi(boolean enabled, String model, int timeoutSeconds, String apiKey) {
+        AppSettings s = get();
+        s.setKiEnabled(enabled);
+        s.setKiModel(model);
+        s.setKiTimeoutSeconds(timeoutSeconds);
+        if (apiKey != null && !apiKey.isBlank()) {
+            s.setKiApiKey(apiKey);
+        }
         return repo.save(s);
     }
 

@@ -49,10 +49,30 @@ _KI_KOPF_FELDER = {
 }
 
 
-def ki_available() -> bool:
-    """KI-Fallback ist nur aktiv, wenn ausdruecklich eingeschaltet und Schluessel da."""
-    enabled = os.getenv("KI_ENABLED", "false").strip().lower() in ("1", "true", "yes")
-    return enabled and bool(os.getenv("OPENROUTER_API_KEY"))
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "false").strip().lower() in ("1", "true", "yes")
+
+
+def resolve_config(override: dict | None = None) -> dict:
+    """Effektive KI-Konfiguration: Werte aus der webapp-DB (per Job uebergeben)
+    haben Vorrang, sonst die .env des Workers (Fallback fuer den HTTP-Pfad)."""
+    override = override or {}
+    enabled = override.get("enabled")
+    if enabled is None:
+        enabled = _env_truthy("KI_ENABLED")
+    api_key = (override.get("api_key") or os.getenv("OPENROUTER_API_KEY") or "").strip()
+    model = (override.get("model") or os.getenv("KI_MODEL") or _DEFAULT_MODEL).strip()
+    try:
+        timeout = float(override.get("timeout") or os.getenv("KI_TIMEOUT", "30"))
+    except (TypeError, ValueError):
+        timeout = 30.0
+    return {"enabled": bool(enabled), "api_key": api_key, "model": model, "timeout": timeout}
+
+
+def ki_available(config: dict | None = None) -> bool:
+    """KI-Fallback ist nur aktiv, wenn eingeschaltet UND ein Schluessel vorhanden."""
+    cfg = config if config and "enabled" in config else resolve_config(config)
+    return cfg["enabled"] and bool(cfg["api_key"])
 
 
 def _missing_fields(model: InvoiceModel) -> dict[str, str]:
@@ -65,7 +85,7 @@ def _missing_fields(model: InvoiceModel) -> dict[str, str]:
     return out
 
 
-def _call_openrouter(raw_text: str, felder: dict[str, str]) -> dict[str, Any]:
+def _call_openrouter(raw_text: str, felder: dict[str, str], cfg: dict) -> dict[str, Any]:
     """Fragt das Modell nach genau den fehlenden Feldern. Liefert {} bei Fehler."""
     import requests  # nur im Container benoetigt
 
@@ -81,7 +101,7 @@ def _call_openrouter(raw_text: str, felder: dict[str, str]) -> dict[str, Any]:
         f"--- Rechnungstext ---\n{raw_text[:6000]}"
     )
     payload = {
-        "model": os.getenv("KI_MODEL", _DEFAULT_MODEL),
+        "model": cfg["model"],
         "temperature": 0,
         "messages": [
             {"role": "system", "content": system},
@@ -90,13 +110,12 @@ def _call_openrouter(raw_text: str, felder: dict[str, str]) -> dict[str, Any]:
         "response_format": {"type": "json_object"},
     }
     headers = {
-        "Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+        "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
         # OpenRouter-Attribution (optional, White-Label-neutral).
         "X-Title": "senapsa-erechnung",
     }
-    resp = requests.post(_OPENROUTER_URL, json=payload, headers=headers,
-                         timeout=float(os.getenv("KI_TIMEOUT", "30")))
+    resp = requests.post(_OPENROUTER_URL, json=payload, headers=headers, timeout=cfg["timeout"])
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"]["content"]
     return _parse_json_object(content)
@@ -117,20 +136,23 @@ def _parse_json_object(content: str) -> dict[str, Any]:
     return {}
 
 
-def enrich_with_ki(model: InvoiceModel, raw_text: str) -> int:
+def enrich_with_ki(model: InvoiceModel, raw_text: str, config: dict | None = None) -> int:
     """Fuellt fehlende Kopf-Felder per LLM. Gibt die Zahl ergaenzter Felder zurueck.
 
-    Idempotent-sicher: ueberschreibt nur wirklich fehlende Felder; alle Werte
-    werden ``herkunft=ki`` / ``status=unsicher`` markiert (prueffpflichtig).
+    ``config`` sind die von der webapp uebergebenen Laufzeit-Einstellungen
+    (DB-gepflegt); ohne ``config`` gilt die .env des Workers. Idempotent-sicher:
+    ueberschreibt nur wirklich fehlende Felder; alle Werte werden ``herkunft=ki``
+    / ``status=unsicher`` markiert (prueffpflichtig).
     """
-    if not ki_available() or not raw_text or not raw_text.strip():
+    cfg = resolve_config(config)
+    if not ki_available(cfg) or not raw_text or not raw_text.strip():
         return 0
     felder = _missing_fields(model)
     if not felder:
         return 0
 
     try:
-        werte = _call_openrouter(raw_text, felder)
+        werte = _call_openrouter(raw_text, felder, cfg)
     except Exception:  # noqa: BLE001 - KI darf die Extraktion nie zum Scheitern bringen
         log.exception("KI-Fallback fehlgeschlagen - Extraktion laeuft ohne KI weiter")
         return 0

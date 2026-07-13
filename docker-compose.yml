@@ -54,6 +54,11 @@ services:
       # den Volume-Bind (leer = internes Volume, Pfad = Bind auf den Host-Ordner).
       WATCH_HOST_INPUT_DIR: ${WATCH_HOST_INPUT_DIR:-}
       WATCH_HOST_OUTPUT_DIR: ${WATCH_HOST_OUTPUT_DIR:-}
+      # KI-Assistent: Erst-Vorgaben; danach in der DB pflegbar (Admin-Bereich).
+      KI_ENABLED: ${KI_ENABLED:-false}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      KI_MODEL: ${KI_MODEL:-openai/gpt-4o-mini}
+      KI_TIMEOUT: ${KI_TIMEOUT:-30}
       # Lizenzcontroller-Schnittstelle (Durchsetzung optional, Default aus)
       LICENSE_ENFORCEMENT: ${LICENSE_ENFORCEMENT:-false}
       LICENSE_CONTROLLER_URL: ${LICENSE_CONTROLLER_URL:-}

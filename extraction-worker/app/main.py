@@ -69,7 +69,8 @@ def _redis_consumer() -> None:  # pragma: no cover - Integrationspfad
         _, payload = r.brpop("q:extraction")  # blockiert bis Job vorliegt
         job = json.loads(payload)
         try:
-            outcome = run_extraction(pdf_path=job.get("pdf_path"), csv_path=job.get("csv_path"))
+            outcome = run_extraction(pdf_path=job.get("pdf_path"), csv_path=job.get("csv_path"),
+                                     ki_config=job.get("ki"))
             result = {
                 "invoice_id": job["invoice_id"],
                 "needs_ocr": outcome.needs_ocr,

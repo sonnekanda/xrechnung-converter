@@ -10,6 +10,7 @@ import Firma from "./pages/Firma.jsx";
 import Benutzer from "./pages/Benutzer.jsx";
 import Einstellungen from "./pages/Einstellungen.jsx";
 import OrdnerAutomatik from "./pages/OrdnerAutomatik.jsx";
+import KiAssistent from "./pages/KiAssistent.jsx";
 import Protokoll from "./pages/Protokoll.jsx";
 
 function Protected({ children, adminOnly }) {
@@ -64,6 +65,14 @@ export default function App() {
           element={
             <Protected adminOnly>
               <OrdnerAutomatik />
+            </Protected>
+          }
+        />
+        <Route
+          path="ki-assistent"
+          element={
+            <Protected adminOnly>
+              <KiAssistent />
             </Protected>
           }
         />

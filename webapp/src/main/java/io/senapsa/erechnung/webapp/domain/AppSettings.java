@@ -46,6 +46,24 @@ public class AppSettings {
     @Column(name = "watch_output_format", nullable = false)
     private String watchOutputFormat = "XRECHNUNG";
 
+    // --- KI-Assistent (optionaler LLM-Fallback im extraction-worker) ---------
+
+    /** LLM-Fallback fuer fehlende Felder aktiv. */
+    @Column(name = "ki_enabled", nullable = false)
+    private boolean kiEnabled = false;
+
+    /** Modell-ID bei OpenRouter (z.B. "openai/gpt-4o-mini"). */
+    @Column(name = "ki_model", nullable = false)
+    private String kiModel = "openai/gpt-4o-mini";
+
+    /** OpenRouter-API-Schluessel. Wird nie an das Frontend zurueckgegeben. */
+    @Column(name = "ki_api_key", nullable = false)
+    private String kiApiKey = "";
+
+    /** Timeout je KI-Aufruf in Sekunden. */
+    @Column(name = "ki_timeout_seconds", nullable = false)
+    private int kiTimeoutSeconds = 30;
+
     public UUID getId() {
         return id;
     }
@@ -116,5 +134,37 @@ public class AppSettings {
             case "ZUGFERD", "BEIDE", "XRECHNUNG" -> u;
             default -> "XRECHNUNG";
         };
+    }
+
+    public boolean isKiEnabled() {
+        return kiEnabled;
+    }
+
+    public void setKiEnabled(boolean kiEnabled) {
+        this.kiEnabled = kiEnabled;
+    }
+
+    public String getKiModel() {
+        return kiModel;
+    }
+
+    public void setKiModel(String kiModel) {
+        this.kiModel = (kiModel == null || kiModel.isBlank()) ? "openai/gpt-4o-mini" : kiModel.trim();
+    }
+
+    public String getKiApiKey() {
+        return kiApiKey;
+    }
+
+    public void setKiApiKey(String kiApiKey) {
+        this.kiApiKey = kiApiKey == null ? "" : kiApiKey.trim();
+    }
+
+    public int getKiTimeoutSeconds() {
+        return kiTimeoutSeconds;
+    }
+
+    public void setKiTimeoutSeconds(int kiTimeoutSeconds) {
+        this.kiTimeoutSeconds = Math.max(1, kiTimeoutSeconds);
     }
 }

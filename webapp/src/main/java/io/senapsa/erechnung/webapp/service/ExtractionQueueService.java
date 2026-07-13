@@ -33,12 +33,13 @@ public class ExtractionQueueService {
     private final StammdatenAutofillService autofill;
     private final ModelJson modelJson;
     private final AuditService audit;
+    private final AppSettingsService appSettings;
 
     private final WatchFolderService watchFolder;
 
     public ExtractionQueueService(StringRedisTemplate redis, ObjectMapper mapper,
                                   InvoiceRepository invoices, StammdatenAutofillService autofill,
-                                  ModelJson modelJson, AuditService audit,
+                                  ModelJson modelJson, AuditService audit, AppSettingsService appSettings,
                                   @org.springframework.context.annotation.Lazy WatchFolderService watchFolder) {
         this.redis = redis;
         this.mapper = mapper;
@@ -46,16 +47,27 @@ public class ExtractionQueueService {
         this.autofill = autofill;
         this.modelJson = modelJson;
         this.audit = audit;
+        this.appSettings = appSettings;
         this.watchFolder = watchFolder;
     }
 
     public void enqueue(Invoice invoice, String pdfPath, String csvPath) {
         try {
-            String payload = mapper.writeValueAsString(Map.of(
-                    "invoice_id", invoice.getId().toString(),
-                    "pdf_path", pdfPath == null ? "" : pdfPath,
-                    "csv_path", csvPath == null ? "" : csvPath));
-            redis.opsForList().leftPush(Q_IN, payload);
+            Map<String, Object> job = new java.util.HashMap<>();
+            job.put("invoice_id", invoice.getId().toString());
+            job.put("pdf_path", pdfPath == null ? "" : pdfPath);
+            job.put("csv_path", csvPath == null ? "" : csvPath);
+            // Effektive KI-Einstellungen (DB, sonst .env-Seed) mitgeben, damit der
+            // Worker sie ohne eigenen Neustart anwendet. Schluessel nur bei aktivem
+            // Assistenten uebermitteln.
+            var s = appSettings.get();
+            Map<String, Object> ki = new java.util.HashMap<>();
+            ki.put("enabled", s.isKiEnabled());
+            ki.put("model", s.getKiModel());
+            ki.put("timeout", s.getKiTimeoutSeconds());
+            ki.put("api_key", s.isKiEnabled() ? s.getKiApiKey() : "");
+            job.put("ki", ki);
+            redis.opsForList().leftPush(Q_IN, mapper.writeValueAsString(job));
             audit.log(invoice.getId(), "EXTRAKTION_EINGEREIHT", "Job in Queue gelegt");
         } catch (Exception e) {
             throw new IllegalStateException("Extraktionsjob konnte nicht eingereiht werden", e);
