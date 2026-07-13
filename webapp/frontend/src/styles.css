@@ -147,12 +147,12 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
 
 /* Übersichtstabelle: feste Spaltenbreiten via colgroup; nur der Käufer dehnt
    sich, die Rechnungsnummer ist begrenzt. Beide brechen bei Bedarf in der Zelle
-   um. Auf schmalen Fenstern scrollt der Wrapper horizontal statt zu quetschen. */
-.table-scroll { overflow-x: auto; }
+   um. Der Wrapper (.table-scroll-v) scrollt bei Bedarf horizontal wie vertikal
+   und hält die Kopfzeile fest. */
 table.uebersicht { table-layout: fixed; min-width: 1110px; }
 tr.klickbar { cursor: pointer; }
 
-/* Vertikal scrollbare Tabelle mit fixierter Kopfzeile (z.B. Stammdaten). */
+/* Vertikal scrollbare Tabelle mit fixierter Kopfzeile (Übersicht, Stammdaten). */
 .table-scroll-v { max-height: 62vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; }
 .table-scroll-v thead th {
   position: sticky; top: 0; z-index: 1; background: var(--panel);

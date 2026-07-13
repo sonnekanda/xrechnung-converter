@@ -225,7 +225,7 @@ export default function Dashboard() {
       {sorted.length === 0 ? (
         <p className="muted">Keine Rechnungen im gewählten Zeitraum.</p>
       ) : (
-        <div className="table-scroll">
+        <div className="table-scroll-v">
         <table className="uebersicht">
           <colgroup>
             <col style={{ width: 34 }} />{/* Auswahl */}
