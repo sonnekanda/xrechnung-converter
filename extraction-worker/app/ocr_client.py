@@ -6,17 +6,27 @@ grundsaetzlich als ``ocr``/``unsicher`` markiert (prueffpflichtig).
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 from .model import Herkunft, InvoiceModel, Status
 from .pdf_path import extract_pdf_text
 
 
+@dataclass
+class OcrResult:
+    """OCR-Ergebnis: das (unsichere) Modell und der rohe OCR-Text. Der Text wird
+    zusaetzlich fuer den optionalen KI-Fallback gebraucht (Felder, die die
+    regelbasierte OCR-Auswertung nicht erkannt hat)."""
+    model: InvoiceModel
+    text: str
+
+
 def ocr_available() -> bool:
     return bool(os.getenv("OCR_URL"))
 
 
-def run_ocr(pdf_path: str | Path) -> InvoiceModel | None:
+def run_ocr(pdf_path: str | Path) -> OcrResult | None:
     """Sendet das PDF an den ocr-worker und baut ein OCR-Modell (alles unsicher)."""
     url = os.getenv("OCR_URL")
     if not url:
@@ -35,7 +45,7 @@ def run_ocr(pdf_path: str | Path) -> InvoiceModel | None:
     model = extract_pdf_text(text, p.name)
     model.quelle = {"pdf_datei": p.name, "pdf_hat_textebene": False, "ocr_verwendet": True}
     _tag_ocr(model)
-    return model
+    return OcrResult(model=model, text=text)
 
 
 def _tag_ocr(model: InvoiceModel) -> None:

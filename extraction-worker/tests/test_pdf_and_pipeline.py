@@ -90,7 +90,7 @@ def test_scan_mit_csv_ocr_fuellt_luecken_csv_hat_vorrang(monkeypatch):
     # es gibt KEINE Gegenpruefung gegen OCR.
     import app.pipeline as pipeline
     from app.pdf_path import extract_pdf_text
-    from app.ocr_client import _tag_ocr
+    from app.ocr_client import OcrResult, _tag_ocr
 
     def fake_ocr(_path):
         text = ("Rechnung Nr. 400014\nvom 05.07.2026\nUnsere USt-IdNr DEO0001\n"
@@ -99,7 +99,7 @@ def test_scan_mit_csv_ocr_fuellt_luecken_csv_hat_vorrang(monkeypatch):
         m = extract_pdf_text(text, "400014.pdf")
         m.quelle = {"pdf_datei": "400014.pdf", "pdf_hat_textebene": False, "ocr_verwendet": True}
         _tag_ocr(m)
-        return m
+        return OcrResult(model=m, text=text)
 
     monkeypatch.setattr(pipeline, "ocr_available", lambda: True)
     monkeypatch.setattr(pipeline, "run_ocr", fake_ocr)
@@ -119,6 +119,41 @@ def test_scan_mit_csv_ocr_fuellt_luecken_csv_hat_vorrang(monkeypatch):
     assert pos["menge"]["status"] == "unsicher"
     # CSV-eigener Wert bleibt (Gesamtpreis aus CSV).
     assert pos["gesamtpreis"]["herkunft"] == "csv"
+
+
+def test_scan_ohne_csv_ki_ergaenzt_ocr_luecke(monkeypatch):
+    # Reiner Scan (kein CSV): Felder, die die regelbasierte OCR-Auswertung nicht
+    # erkannt hat (hier der Kaeufer), ergaenzt der KI-Fallback aus dem OCR-Text
+    # (herkunft=ki/unsicher, pruefpflichtig).
+    import app.pipeline as pipeline
+    from app import ki_client
+    from app.ocr_client import OcrResult, _tag_ocr
+    from app.pdf_path import PdfResult, extract_pdf_text
+
+    ocr_text = "Rechnung Nr. 400099\nvom 05.07.2026\nKleine Automobile AG\n"
+
+    def fake_ocr(_path):
+        m = extract_pdf_text(ocr_text, "scan.pdf")
+        m.quelle = {"pdf_datei": "scan.pdf", "pdf_hat_textebene": False, "ocr_verwendet": True}
+        _tag_ocr(m)
+        return OcrResult(model=m, text=ocr_text)
+
+    monkeypatch.setattr(pipeline, "extract_pdf",
+                        lambda _p: PdfResult(model=None, needs_ocr=True, raw_text=""))
+    monkeypatch.setattr(pipeline, "ocr_available", lambda: True)
+    monkeypatch.setattr(pipeline, "run_ocr", fake_ocr)
+    monkeypatch.setenv("KI_ENABLED", "true")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setattr(ki_client, "_call_openrouter",
+                        lambda raw, felder, cfg: {"kaeufer_name": "Kleine Automobile AG"})
+
+    r = run_extraction(pdf_path="scan.pdf")
+    m = r.model.to_dict()
+    assert r.needs_ocr is True
+    kaeufer = m["kopf"]["kaeufer_name"]
+    assert kaeufer["herkunft"] == "ki"
+    assert kaeufer["status"] == "unsicher"
+    assert kaeufer["wert"] == "Kleine Automobile AG"
 
 
 if __name__ == "__main__":
