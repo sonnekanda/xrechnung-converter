@@ -23,6 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .csv_path import parse_csv_bytes
+from .ki_client import enrich_with_ki
 from .model import InvoiceModel, Status, fehlend
 from .ocr_client import ocr_available, run_ocr
 from .pdf_path import PdfResult, extract_pdf
@@ -165,6 +166,9 @@ def run_extraction(pdf_path: str | Path | None = None,
                 merge_fill(csv_model, ocr_model, reliable=False)
                 used_ocr = True
         csv_model.quelle["ocr_verwendet"] = used_ocr
+        # KI-Fallback: nur echte Luecken (status=fehlt), aus der PDF-Textebene.
+        # Ergaenzt herkunft=ki/unsicher -> immer pruefpflichtig, nie Auto-Export.
+        enrich_with_ki(csv_model, pdf_res.raw_text if pdf_res else "")
         _flag_gutschrift(csv_model)
         return ExtractionOutcome(model=csv_model, needs_ocr=used_ocr,
                                  raw_text=pdf_res.raw_text if pdf_res else "")
@@ -182,6 +186,7 @@ def run_extraction(pdf_path: str | Path | None = None,
             return ExtractionOutcome(model=_empty_skeleton(Path(pdf_path).name, needs_ocr=True),
                                      needs_ocr=True, raw_text=pdf_res.raw_text)
         lead = pdf_res.model
+        enrich_with_ki(lead, pdf_res.raw_text)
         _flag_gutschrift(lead)
         return ExtractionOutcome(model=lead, raw_text=pdf_res.raw_text)
 

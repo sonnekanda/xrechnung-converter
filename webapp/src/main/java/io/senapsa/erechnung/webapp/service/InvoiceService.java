@@ -121,8 +121,8 @@ public class InvoiceService {
 
     /**
      * Bestätigt automatisch alle „unsicheren" (gelben) Felder – ausgenommen
-     * OCR-Werte (die bleiben grundsätzlich prüfpflichtig). Für die Ordner-
-     * Automatik mit aktivem Auto-Bestätigen.
+     * OCR- und KI-Werte (die bleiben grundsätzlich prüfpflichtig). Für die
+     * Ordner-Automatik mit aktivem Auto-Bestätigen.
      */
     @Transactional
     public Invoice autoConfirmNonOcr(UUID id) {
@@ -155,7 +155,8 @@ public class InvoiceService {
         for (com.fasterxml.jackson.databind.JsonNode f : obj) {
             if (f instanceof ObjectNode field
                     && "unsicher".equals(field.path("status").asText())
-                    && !"ocr".equals(field.path("herkunft").asText())) {
+                    && !"ocr".equals(field.path("herkunft").asText())
+                    && !"ki".equals(field.path("herkunft").asText())) {
                 field.put("status", "sicher");
                 n++;
             }

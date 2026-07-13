@@ -14,6 +14,7 @@ class Herkunft(str, Enum):
     PDF = "pdf"
     CSV = "csv"
     OCR = "ocr"
+    KI = "ki"              # LLM-Fallback (unsicher, immer pruefpflichtig)
     STAMMDATEN = "stammdaten"
     MANUELL = "manuell"
     BERECHNET = "berechnet"

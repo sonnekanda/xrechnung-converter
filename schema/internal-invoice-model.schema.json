@@ -60,7 +60,7 @@
         },
         "herkunft": {
           "type": "string",
-          "enum": ["pdf", "csv", "ocr", "stammdaten", "manuell", "berechnet"]
+          "enum": ["pdf", "csv", "ocr", "ki", "stammdaten", "manuell", "berechnet"]
         },
         "status": {
           "type": "string",
