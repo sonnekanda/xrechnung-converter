@@ -88,6 +88,14 @@ function restFelder(block, bekannt) {
 // (nicht mehr pauschal „Prüfen").
 const STATUS_VERB = { PRUEFEN: "Prüfen", VALIDIERT: "Geprüft", EXPORTIERT: "Exportiert" };
 
+// Belegarten außer „rechnung" sind laut Backlog („Später") noch nicht exportierbar.
+// Klartext für den Hinweisbanner; Basis ist model.dokumentart (nicht die Entity-
+// Spalte, die bei Altdatensätzen leer sein kann).
+const DOKUMENTART_HINWEIS = {
+  gutschrift: "Kaufmännische Gutschrift",
+  storno: "Storno / Stornorechnung",
+};
+
 function ampelClass(status) {
   return status === "sicher" ? "gruen" : status === "unsicher" ? "gelb" : "rot";
 }
@@ -383,6 +391,14 @@ export default function Pruefbildschirm() {
         </button>
       </div>
 
+      {model.dokumentart && model.dokumentart !== "rechnung" && (
+        <div className="banner warn">
+          <strong>{DOKUMENTART_HINWEIS[model.dokumentart] || "Dieser Belegtyp"}:</strong> wird
+          derzeit nicht als XRechnung exportiert (außerhalb des aktuellen Funktionsumfangs –
+          Gutschriften/Stornos sind für einen späteren Ausbau vorgesehen). Die Daten werden zur
+          Ansicht angezeigt, ein Export ist gesperrt.
+        </div>
+      )}
       {detail.needsOcr && (
         <div className="banner warn">
           Diese Rechnung enthält keine lesbare Textebene und wurde per Texterkennung (OCR) verarbeitet.
