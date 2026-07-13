@@ -149,7 +149,7 @@ td input[type="checkbox"], th input[type="checkbox"] { width: auto; cursor: poin
    sich, die Rechnungsnummer ist begrenzt. Beide brechen bei Bedarf in der Zelle
    um. Der Wrapper (.table-scroll-v) scrollt bei Bedarf horizontal wie vertikal
    und hält die Kopfzeile fest. */
-table.uebersicht { table-layout: fixed; min-width: 1110px; }
+table.uebersicht { table-layout: fixed; min-width: 1084px; }
 tr.klickbar { cursor: pointer; }
 
 /* Vertikal scrollbare Tabelle mit fixierter Kopfzeile (Übersicht, Stammdaten). */
@@ -173,9 +173,8 @@ table.stammdaten { min-width: 960px; }
 table.uebersicht td.col-wrap { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
 table.uebersicht td.nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 table.uebersicht td.aktionen { flex-wrap: wrap; row-gap: 6px; }
-/* Auswahl- und Ampelspalte kompakt halten (nur Checkbox bzw. farbiger Punkt). */
-table.uebersicht th:first-child, table.uebersicht td:first-child,
-table.uebersicht th:nth-child(2), table.uebersicht td:nth-child(2) { padding-left: 8px; padding-right: 6px; }
+/* Auswahlspalte kompakt halten (nur Checkbox). */
+table.uebersicht th:first-child, table.uebersicht td:first-child { padding-left: 8px; padding-right: 6px; }
 
 /* Filterleiste über der Tabelle */
 .toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 4px 0 16px; }

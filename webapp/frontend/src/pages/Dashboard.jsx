@@ -259,26 +259,24 @@ export default function Dashboard() {
         <table className="uebersicht">
           <colgroup>
             <col style={{ width: 34 }} />{/* Auswahl */}
-            <col style={{ width: 26 }} />{/* Ampel */}
+            <col style={{ width: 138 }} />{/* Status */}
             <col style={{ width: 120 }} />{/* Rechnung – begrenzt, bricht bei Bedarf um */}
             <col style={{ width: 138 }} />{/* Rechnungsdatum */}
             <col />{/* Käufer – dehnbar */}
             <col style={{ width: 150 }} />{/* Summe */}
             <col style={{ width: 128 }} />{/* Dateien */}
-            <col style={{ width: 138 }} />{/* Status */}
             <col style={{ width: 230 }} />{/* Ergebnisse */}
           </colgroup>
           <thead>
             <tr>
               <th><input type="checkbox" checked={allSelected} onChange={toggleAll}
                          title="Alle auswählen" /></th>
-              <th></th>
+              <Th label="Status" k="status" />
               <Th label="Rechnung" k="rechnungsnummer" />
               <Th label="Rechnungsdatum" k="rechnungsdatum" />
               <Th label="Käufer" k="kaeuferName" />
               <Th label="Summe" k="bruttobetrag" align="right" />
               <th>Dateien</th>
-              <Th label="Status" k="status" />
               <th>Ergebnisse</th>
             </tr>
           </thead>
@@ -290,7 +288,7 @@ export default function Dashboard() {
                 <td onClick={(e) => e.stopPropagation()}>
                   <input type="checkbox" checked={selected.has(i.id)} onChange={() => toggleOne(i.id)} />
                 </td>
-                <td><span className={`ampel ${ampelFor(i)}`} /></td>
+                <td className="nowrap"><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
                 <td className="col-wrap">
                   <strong>{i.rechnungsnummer || "—"}</strong>
                   {i.dokumentart && i.dokumentart !== "rechnung" && (
@@ -305,7 +303,6 @@ export default function Dashboard() {
                   {i.csvFilename && <div>CSV</div>}
                   {i.source === "WATCH" && <div title="aus Ordner-Automatik">📂 Ordner</div>}
                 </td>
-                <td className="nowrap"><span className={`status-pill status-${i.status}`}>{STATUS_LABEL[i.status] || i.status}</span></td>
                 {/* Ergebnisse: Downloads/Bericht – Klicks bleiben in der Zelle. */}
                 <td className="row aktionen" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   {["VALIDIERT", "EXPORTIERT"].includes(i.status) && (
@@ -330,10 +327,4 @@ export default function Dashboard() {
       {bericht && <ReportModal invoice={bericht} onClose={() => setBericht(null)} />}
     </div>
   );
-}
-
-function ampelFor(i) {
-  if (i.status === "VALIDIERT" || i.status === "EXPORTIERT") return "gruen";
-  if (i.status === "PRUEFEN" || i.status === "IN_VERARBEITUNG" || i.status === "HOCHGELADEN") return "gelb";
-  return "rot";
 }
