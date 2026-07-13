@@ -72,6 +72,18 @@ public class InvoiceController {
         return toDetail(invoice);
     }
 
+    /** Fuegt eine leere Position hinzu (Pflichtfelder rot, manuell auszufuellen). */
+    @PostMapping("/{id}/positionen")
+    public InvoiceDtos.InvoiceDetail addPosition(@PathVariable UUID id) {
+        return toDetail(invoiceService.addPosition(id));
+    }
+
+    /** Entfernt die Position am (0-basierten) Index. */
+    @DeleteMapping("/{id}/positionen/{index}")
+    public InvoiceDtos.InvoiceDetail removePosition(@PathVariable UUID id, @PathVariable int index) {
+        return toDetail(invoiceService.removePosition(id, index));
+    }
+
     /** Erzeugt und validiert die XRechnung ("XRechnung erzeugen"). */
     @PostMapping("/{id}/generate")
     public InvoiceDtos.GenerateResponse generate(@PathVariable UUID id) {

@@ -2,8 +2,11 @@ package io.senapsa.erechnung.webapp.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /** Kleine Helfer zum Lesen/Schreiben von Feldern im internen Modell (JSON). */
 @Component
@@ -74,5 +77,40 @@ public class ModelJson {
         f.put("wert", wert);
         f.put("herkunft", herkunft);
         f.put("status", status);
+    }
+
+    /**
+     * Haengt eine leere Position an und liefert deren Index. Die uebergebenen
+     * Pflichtfelder werden als "fehlt" (rot) angelegt, damit der Nutzer sie im
+     * Pruefbildschirm ausfuellt; die Zeilennummern werden fortlaufend vergeben.
+     */
+    public int addPosition(ObjectNode model, List<String> pflichtfelder) {
+        ArrayNode arr = model.get("positionen") instanceof ArrayNode a ? a : model.putArray("positionen");
+        ObjectNode pos = arr.addObject();
+        writeField(pos, "artikelnummer", null, "manuell", "fehlt");
+        for (String f : pflichtfelder) {
+            writeField(pos, f, null, "manuell", "fehlt");
+        }
+        renumberPositionen(arr);
+        return arr.size() - 1;
+    }
+
+    /** Entfernt die Position am Index und nummeriert die restlichen neu durch. */
+    public void removePosition(ObjectNode model, int index) {
+        if (!(model.get("positionen") instanceof ArrayNode arr)
+                || index < 0 || index >= arr.size()) {
+            throw new IllegalArgumentException("Position " + (index + 1) + " existiert nicht.");
+        }
+        arr.remove(index);
+        renumberPositionen(arr);
+    }
+
+    /** Setzt die reine Zeilennummer ("position") jeder Position auf 1..N. */
+    private void renumberPositionen(ArrayNode arr) {
+        for (int i = 0; i < arr.size(); i++) {
+            if (arr.get(i) instanceof ObjectNode pos) {
+                writeField(pos, "position", String.valueOf(i + 1), "manuell", "sicher");
+            }
+        }
     }
 }

@@ -172,13 +172,7 @@ public class InvoiceService {
     @Transactional
     public Invoice updateField(UUID id, String block, String field, String wert, Integer positionIndex) {
         Invoice invoice = get(id);
-        if (invoice.getStatus() == InvoiceStatus.EXPORTIERT) {
-            throw new ApiExceptions.Conflict(
-                    "Diese Rechnung wurde bereits exportiert und kann nicht mehr geaendert werden.");
-        }
-        if (invoice.getStatus() != InvoiceStatus.PRUEFEN && invoice.getStatus() != InvoiceStatus.VALIDIERT) {
-            throw new ApiExceptions.Conflict("In diesem Bearbeitungsschritt ist die Aenderung nicht moeglich.");
-        }
+        ensureEditable(invoice);
         ObjectNode model = modelJson.parse(invoice.getModelJson());
         if ("position".equals(block) && positionIndex != null) {
             modelJson.setPosition(model, positionIndex, field, wert, "manuell", "sicher");
@@ -197,6 +191,26 @@ public class InvoiceService {
             }
         }
 
+        resetIfValidated(invoice, id);
+        invoice.touch();
+        String pos = positionIndex != null ? "[" + (positionIndex + 1) + "]" : "";
+        audit.log(id, "FELD_KORRIGIERT", block + pos + "." + field + " = " + wert);
+        return invoices.save(invoice);
+    }
+
+    /** Wirft, wenn die Rechnung im aktuellen Zustand nicht bearbeitet werden darf. */
+    private void ensureEditable(Invoice invoice) {
+        if (invoice.getStatus() == InvoiceStatus.EXPORTIERT) {
+            throw new ApiExceptions.Conflict(
+                    "Diese Rechnung wurde bereits exportiert und kann nicht mehr geaendert werden.");
+        }
+        if (invoice.getStatus() != InvoiceStatus.PRUEFEN && invoice.getStatus() != InvoiceStatus.VALIDIERT) {
+            throw new ApiExceptions.Conflict("In diesem Bearbeitungsschritt ist die Aenderung nicht moeglich.");
+        }
+    }
+
+    /** Eine Aenderung nach der Validierung verwirft die erzeugte XRechnung (zurueck auf PRUEFEN). */
+    private void resetIfValidated(Invoice invoice, UUID id) {
         if (invoice.getStatus() == InvoiceStatus.VALIDIERT) {
             invoice.setStatus(InvoiceStatus.PRUEFEN);
             invoice.setValid(false);
@@ -205,9 +219,37 @@ public class InvoiceService {
             audit.log(id, "AENDERUNG_NACH_VALIDIERUNG",
                     "Erzeugte XRechnung verworfen - erneute Erzeugung erforderlich");
         }
+    }
+
+    /**
+     * Fuegt eine leere Position hinzu (Pflichtfelder rot). Repariert Faelle, in
+     * denen PDF/OCR eine Position nicht erkannt hat und die Summen sonst nie
+     * aufgingen. Liefert die aktualisierte Rechnung.
+     */
+    @Transactional
+    public Invoice addPosition(UUID id) {
+        Invoice invoice = get(id);
+        ensureEditable(invoice);
+        ObjectNode model = modelJson.parse(invoice.getModelJson());
+        int index = modelJson.addPosition(model, FachpruefungService.PFLICHT_POSITION);
+        invoice.setModelJson(modelJson.write(model));
+        resetIfValidated(invoice, id);
         invoice.touch();
-        String pos = positionIndex != null ? "[" + (positionIndex + 1) + "]" : "";
-        audit.log(id, "FELD_KORRIGIERT", block + pos + "." + field + " = " + wert);
+        audit.log(id, "POSITION_HINZUGEFUEGT", "Position " + (index + 1) + " manuell angelegt");
+        return invoices.save(invoice);
+    }
+
+    /** Entfernt die Position am (0-basierten) Index und nummeriert neu. */
+    @Transactional
+    public Invoice removePosition(UUID id, int index) {
+        Invoice invoice = get(id);
+        ensureEditable(invoice);
+        ObjectNode model = modelJson.parse(invoice.getModelJson());
+        modelJson.removePosition(model, index);
+        invoice.setModelJson(modelJson.write(model));
+        resetIfValidated(invoice, id);
+        invoice.touch();
+        audit.log(id, "POSITION_ENTFERNT", "Position " + (index + 1) + " manuell entfernt");
         return invoices.save(invoice);
     }
 

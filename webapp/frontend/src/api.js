@@ -50,6 +50,8 @@ export const api = {
   invoice: (id) => request("GET", `/invoices/${id}`),
   patchField: (id, block, feld, wert, positionIndex = null) =>
     request("PATCH", `/invoices/${id}`, { body: { block, feld, wert, positionIndex } }),
+  addPosition: (id) => request("POST", `/invoices/${id}/positionen`),
+  removePosition: (id, index) => request("DELETE", `/invoices/${id}/positionen/${index}`),
   generate: (id) => request("POST", `/invoices/${id}/generate`),
   reportSummary: (id) => request("GET", `/invoices/${id}/validation-report/summary`),
   reopen: (id) => request("POST", `/invoices/${id}/reopen`),

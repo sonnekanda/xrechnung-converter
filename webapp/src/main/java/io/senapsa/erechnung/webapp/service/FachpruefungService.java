@@ -33,7 +33,8 @@ public class FachpruefungService {
             "verkaeufer_telefon", "verkaeufer_email");
     private static final List<String> PFLICHT_SUMMEN = List.of(
             "nettobetrag", "steuerbetrag", "bruttobetrag");
-    private static final List<String> PFLICHT_POSITION = List.of(
+    /** Pflichtfelder je Position (auch beim manuellen Hinzufuegen einer Position genutzt). */
+    public static final List<String> PFLICHT_POSITION = List.of(
             "beschreibung", "menge", "einheit", "einzelpreis", "gesamtpreis", "steuersatz");
 
     private final ModelJson modelJson;

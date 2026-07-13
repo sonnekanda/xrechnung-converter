@@ -224,6 +224,28 @@ export default function Pruefbildschirm() {
     }
   }
 
+  // Fehlende Position ergaenzen (z.B. wenn PDF/OCR eine Zeile nicht erkannt hat).
+  async function addPosition() {
+    setError(null);
+    try {
+      setDetail(await api.addPosition(id));
+      setGenMsg(null);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function removePosition(index) {
+    if (!confirm(`Position ${index + 1} wirklich entfernen?`)) return;
+    setError(null);
+    try {
+      setDetail(await api.removePosition(id, index));
+      setGenMsg(null);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function generate() {
     setBusy(true);
     setGenMsg(null);
@@ -526,7 +548,14 @@ export default function Pruefbildschirm() {
           <div className="section-title">Positionen ({positionen.length})</div>
           {positionen.map((pos, idx) => (
             <div key={idx} className="panel" style={{ margin: "8px 0", padding: 12 }}>
-              <strong>Position {idx + 1}: {pos.artikelnummer?.wert || ""}</strong>
+              <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <strong>Position {idx + 1}: {pos.artikelnummer?.wert || ""}</strong>
+                {!readOnly && (
+                  <button className="ghost icon" title="Position entfernen"
+                          aria-label={`Position ${idx + 1} entfernen`}
+                          onClick={() => removePosition(idx)}>🗑</button>
+                )}
+              </div>
               {/* Bekannte Positionsfelder in fester Reihenfolge, danach als Catch-all
                   alle übrigen Feld-Schlüssel dieser Position (ohne Zeilennummer). */}
               {[...POSITION_FELDER, ...restFelder(pos, new Set(POSITION_FELDER))].map((f) => (
@@ -541,6 +570,15 @@ export default function Pruefbildschirm() {
               ))}
             </div>
           ))}
+          {!readOnly && (
+            <div className="mt">
+              <button className="secondary" onClick={addPosition}>+ Position hinzufügen</button>
+              <div className="muted" style={{ marginTop: 4 }}>
+                Für Positionen, die PDF/OCR nicht erkannt hat – Pflichtfelder erscheinen rot
+                und müssen ausgefüllt werden.
+              </div>
+            </div>
+          )}
 
           <div className="mt row" style={{ justifyContent: "space-between" }}>
             <span className={detail.exportReady ? "muted" : "hinweis"} style={{ margin: 0 }}>
