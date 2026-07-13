@@ -191,7 +191,7 @@ button.small.icon { padding: 6px 10px; font-size: 15px; line-height: 1; }
    bringen und vertikal zentrieren – einheitliche Optik in einer Zeile. Betrifft
    Monats-Tasten/Label, „Dieser Monat", Löschen und die „Alle anzeigen"-Checkbox
    (deren Label direkt in der Leiste steht und sonst am Boden klebte). */
-.toolbar button,
+.toolbar button:not(.such-clear),
 .toolbar .month-label,
 .toolbar > label {
   min-height: 41px;
