@@ -1,6 +1,6 @@
 # Senapsa eRechnung-Konverter — Backlog (Epics & Stories)
 
-> **Status-Kopie (Stand 2026-07-12)** — Abgleich der Anforderungen mit dem umgesetzten Stand.
+> **Status-Kopie (Stand 2026-07-13)** — Abgleich der Anforderungen mit dem umgesetzten Stand.
 > Original unverändert unter `aufgabe/`. Legende: **[x]** erfüllt · **🟡** teilweise · **❌** offen.
 
 
@@ -23,8 +23,9 @@
 | Generierung & Validierung | 3 | 2 / 0 / 1 |
 | Stammdaten & Admin | 3 | 3 / 0 / 0 |
 | Ordner-Automatik (Watch-Folder) | 4 | 0 / 0 / 4 |
+| KI-Assistent (Zusatz, Rang 8) | 1 | 0 / 0 / 1 |
 | Lasttest & Abnahme | 3 | 3 / 0 / 0 |
-| **Gesamt** | **35** | **27 / 2 / 6** |
+| **Gesamt** | **36** | **27 / 2 / 7** |
 
 ---
 
@@ -149,6 +150,16 @@ OCR überall dort, wo notwendig — fehlende/unbrauchbare Textebene, unsichere W
 - [x] **OCR-Confidence & Prüfpflicht** `Soll` `ocr, K-01, K-02`  *(✅ OCR-Werte immer gelb/prüfpflichtig; vom Auto-Bestätigen der Ordner-Automatik ausgenommen)*
   - *User Story:* Als Buchhaltungsmitarbeiter möchte ich OCR-Werte immer als unsicher markiert sehen, damit nichts Ungeprüftes in die XRechnung gelangt.
   - *Akzeptanzkriterien:* OCR-Ergebnisse grundsätzlich als „unsicher" (gelb) markiert und müssen im Prüfbildschirm bestätigt werden — unabhängig von der Confidence.
+
+---
+
+## EPIC: KI-Assistent (Zusatz, Rang 8)
+
+Umsetzung des KI-Zusatzmotors (Dev-Doc Kap. 8a, OSS-Ranking Rang 8) als abschaltbarer LLM-Fallback über OpenRouter. Nicht Teil der ursprünglichen 35 Tickets — als optionaler „Kann"-Baustein ergänzt.
+
+- [x] **KI-Assistent (LLM-Fallback + OCR-Korrektur)** `Kann` `ki, Rang 8`  *(✅ opt-in LLM-Fallback im extraction-worker; ergänzt fehlende Käufer-/Metadaten-Felder aus dem Text und korrigiert OCR-Lesefehler beim Scan; Verkäufer ausgeschlossen (aus Firma); alle KI-Werte herkunft=ki/unsicher, nie Auto-Export; Admin-Bereich „KI-Assistent" mit Master-Schalter, DB-gepflegt, Schlüssel nie ans Frontend; robust bei Fehlern)*
+  - *User Story:* Als Betreiber möchte ich optional ein Sprachmodell zuschalten, das nur die von den regelbasierten Pfaden nicht erkannten Felder ergänzt bzw. offensichtliche OCR-Lesefehler korrigiert, damit weniger manuell nachgearbeitet werden muss — ohne die Kontrolle über den Export aufzugeben.
+  - *Akzeptanzkriterien:* Standardmäßig aus, per `.env`/Admin aktivierbar (`KI_ENABLED`, `OPENROUTER_API_KEY`, `KI_MODEL`, `KI_TIMEOUT`). Liest nur bereits erkannten Text, kein Bild. Nur Käufer-Felder + Metadaten, nie Verkäufer. Jeder KI-Wert `herkunft=ki`/`unsicher`, vom Auto-Bestätigen ausgenommen, nie Auto-Export. Fehler im KI-Schritt brechen die Extraktion nicht ab. DSGVO-Hinweis bei Aktivierung (Drittanbieter-Versand).
 
 ---
 

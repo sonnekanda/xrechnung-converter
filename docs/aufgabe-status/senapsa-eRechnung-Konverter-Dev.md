@@ -1,6 +1,6 @@
 # Senapsa eRechnung-Konverter & Validator — Entwicklungsdokument
 
-> **Status-Kopie (Stand 2026-07-12)** — Abgleich der Anforderungen mit dem umgesetzten Stand.
+> **Status-Kopie (Stand 2026-07-13)** — Abgleich der Anforderungen mit dem umgesetzten Stand.
 > Original unverändert unter `aufgabe/`. Legende: **[x]** erfüllt · **🟡** teilweise · **❌** offen.
 
 
@@ -135,7 +135,7 @@ Format-Hinweise: deutsche Zahlen-/Datumsformate (`1.234,56` / `TT.MM.JJJJ`). Sko
 | 5 | Tesseract OCR + ocrmypdf | OCR für Scans ohne Textebene | Apache-2.0/MPL-2.0 | `ocr-worker`, immer async + prüfpflichtig |
 | 6 | PostgreSQL 17 / Redis 7 | Datenhaltung + Job-Queue | frei | `postgres`, `redis` |
 | 7 | InvOCR | Rechnungs-OCR-Pipeline | — | nur PoC-Fallback |
-| 8 | Invoice Data Extraction AI | KI-Extraktion exotischer Layouts | kommerziell | letzte Wahl, DSGVO/AV-Prüfung zwingend, abschaltbar |
+| 8 | Invoice Data Extraction AI | KI-Extraktion exotischer Layouts | kommerziell | 🟡 umgesetzt als abschaltbarer LLM-Fallback über **OpenRouter** (statt kommerziellem Dienst); opt-in, DSGVO-Hinweis, s. 8a |
 
 CSV-Verarbeitung ist **kein Motor**, sondern Eigenentwicklung (versioniertes Abas-Mapping).
 
@@ -171,6 +171,23 @@ Design: deutschsprachig, Alltagssprache, Desktop-Browser-Fokus, senapsa-Branding
 
 ---
 
+## 8a. KI-Assistent (optional, "Kann") — 🟡 umgesetzt (PoC)
+
+Realisierung des KI-Zusatzmotors (OSS-Ranking Rang 8) als **abschaltbarer LLM-Fallback** im `extraction-worker` (OpenRouter, OpenAI-kompatibler Endpunkt). Standardmäßig **aus**; opt-in über `.env` oder Admin-Bereich.
+
+- **Zweck:** Kopf-Felder, die die deterministischen Pfade (CSV / PDF-Textebene / OCR) nicht liefern konnten (`status=fehlt`), aus dem verfügbaren Text ergänzen — und beim Scan **OCR-Lesefehler korrigieren** (`correct_ocr`, z.B. USt-IdNr „DEO0001" → geprüfter Vorschlag).
+- **Wann aktiv:** nur wenn verwertbarer Text vorliegt — PDF-Textebene (auch mit CSV) oder OCR-Text beim Scan. Reines CSV ohne PDF und leere Skelette lösen keinen KI-Aufruf aus.
+- **Grenzen (verbindlich):**
+  - Liest **nie ein Bild**, nur bereits erkannten Text — die eigentliche OCR bleibt Tesseract (`ocr-worker`).
+  - Nur **Käufer-Felder + Rechnungs-Metadaten**, **nie den Verkäufer**: der ist die eigene Firma und kommt verlässlich aus Stammdaten/CompanyProfile (verhindert Käufer/Verkäufer-Verwechslung; ein aus unsicherer Quelle (OCR/KI) gelesener Verkäufer wird durch die Firmendaten ersetzt).
+  - Jeder KI-Wert `herkunft=ki` / `status=unsicher` → im Prüfbildschirm **gelb**, vom Auto-Bestätigen der Ordner-Automatik ausgenommen, **nie Auto-Export**.
+- **Robust:** jeder Fehler (kein Schlüssel, Timeout, unparsbare Antwort) lässt die Extraktion **ohne KI** weiterlaufen — der KI-Schritt kann die Verarbeitung nie zum Scheitern bringen.
+- **Admin-Bereich „KI-Assistent":** Master-Schalter „Standardeinstellungen überschreiben" + aktiv / Modell / Timeout / API-Schlüssel. DB-gepflegt (überschreibt die `.env`-Vorgaben), der Schlüssel wird nie an das Frontend zurückgegeben. Die effektiven Werte gehen je Extraktion an den Worker (Änderung ohne Neustart).
+- **DSGVO:** bei Aktivierung wird der extrahierte Rechnungstext an OpenRouter (Drittanbieter) gesendet → für den Produktivbetrieb ein EU-/self-hosted Modell wählen. Hier bewusst PoC.
+- **Config:** `KI_ENABLED`, `OPENROUTER_API_KEY`, `KI_MODEL`, `KI_TIMEOUT`.
+
+---
+
 ## 9. API (Auszug)
 
 ```
@@ -201,7 +218,7 @@ JSON, Multipart-Upload, klare Fehlercodes, OpenAPI-Dokumentation.
 - Validierungsbericht, Audit-Log
 
 ### Kann
-- ZUGFeRD EN 16931 (nach PoC), Ordner-Automatik, Virenscan, Metriken, SSO, Lizenzcontroller, KI-Zusatzmotor (Rang 8)
+- ZUGFeRD EN 16931 (nach PoC), Ordner-Automatik, Virenscan, Metriken, SSO, Lizenzcontroller, KI-Zusatzmotor (Rang 8) — **KI 🟡 umgesetzt als abschaltbarer LLM-Fallback (s. 8a)**
 
 ### Später
 - CII-Syntax, Peppol, E-Mail-Versand, weitere ERP-Systeme, allgemeine Rechnungserkennung, Multi-Tenancy, Gutschriften/Stornos, erweiterte Fehlerbehandlung (Duplikate, defekte Dateien), DSGVO-Konzept/AV-Vertrag, Backup/Restore, Cloud-Anbindung Ordner-Automatik
