@@ -68,6 +68,12 @@ function istFeldObjekt(f) {
   return f != null && typeof f === "object" && "wert" in f;
 }
 
+// Trägt das Feld einen tatsächlichen Wert? Leere/None-Werte gelten als „kein Wert".
+function hatWert(f) {
+  const w = f?.wert;
+  return w !== null && w !== undefined && String(w).trim() !== "";
+}
+
 // Fallback-Label aus dem Schlüssel: „bestellnummer" -> „Bestellnummer",
 // „leitweg_id" -> „Leitweg ID". Nur nötig für (noch) unbekannte Felder.
 function humanize(key) {
@@ -76,11 +82,17 @@ function humanize(key) {
 }
 
 // Schlüssel eines Feldblocks, die in keiner kuratierten Gruppe vorkommen und kein
-// technischer Marker sind. Sie MÜSSEN dennoch sichtbar/bestätigbar sein, damit die
-// Fachprüfung nie ein Feld beanstandet, das auf der Form gar nicht erscheint.
+// technischer Marker sind. Nur solche mit tatsächlichem Wert werden gezeigt: die
+// Form soll ausschließlich Pflichtfelder (in den kuratierten Gruppen) und real
+// befüllte Felder rendern – nicht die (potenziell zahlreichen) leeren optionalen
+// Platzhalter, die manche Extraktionspfade vorsorglich anlegen (z. B. leerer
+// Leistungszeitraum / Bankverbindung aus der CSV). Sicher, weil die Fachprüfung
+// ein „rest"-Feld nur beanstandet, wenn es unsicher ist – und ein unsicheres Feld
+// hat immer einen Wert; leere optionale Felder blockieren den Export nie.
 function restFelder(block, bekannt) {
   return Object.keys(block).filter(
-    (k) => !bekannt.has(k) && !STRUKTUR_FELDER.has(k) && !k.startsWith("_") && istFeldObjekt(block[k])
+    (k) => !bekannt.has(k) && !STRUKTUR_FELDER.has(k) && !k.startsWith("_")
+      && istFeldObjekt(block[k]) && hatWert(block[k])
   );
 }
 
