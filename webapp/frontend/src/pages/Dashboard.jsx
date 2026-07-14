@@ -62,6 +62,24 @@ function deBetrag(wert) {
   return `${n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 }
 
+// Filterzustand über sessionStorage erhalten: beim Öffnen einer Rechnung wird die
+// Übersicht ab-/beim Zurückkehren neu gemountet, wodurch lokaler useState-Zustand
+// auf die Defaults zurückfiele. So bleibt der gewählte Zeitraum/Suchbegriff über
+// Navigation und Seiten-Neuladen (F5) hinweg innerhalb der Sitzung bestehen.
+function useSessionState(key, initial) {
+  const [state, setState] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw != null) return JSON.parse(raw);
+    } catch { /* beschädigter/gesperrter Storage -> Default */ }
+    return typeof initial === "function" ? initial() : initial;
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(key, JSON.stringify(state)); } catch { /* Storage nicht verfügbar */ }
+  }, [key, state]);
+  return [state, setState];
+}
+
 export default function Dashboard() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -81,11 +99,11 @@ export default function Dashboard() {
       .then((c) => setFirmaHinweis(firmaUnvollstaendig(c)))
       .catch(() => {});
   }, [isAdmin]);
-  const [range, setRange] = useState(monthRange());
-  const [alle, setAlle] = useState(false);
-  const [q, setQ] = useState(""); // Freitext-Filter über die geladenen Rechnungen
+  const [range, setRange] = useSessionState("uebersicht.range", monthRange);
+  const [alle, setAlle] = useSessionState("uebersicht.alle", false);
+  const [q, setQ] = useSessionState("uebersicht.q", ""); // Freitext-Filter über die geladenen Rechnungen
   const suchRef = useRef();
-  const [sort, setSort] = useState({ key: "rechnungsdatum", dir: "desc" });
+  const [sort, setSort] = useSessionState("uebersicht.sort", { key: "rechnungsdatum", dir: "desc" });
   const [selected, setSelected] = useState(() => new Set());
   const [bericht, setBericht] = useState(null); // Rechnung für den Bericht-Dialog
 
